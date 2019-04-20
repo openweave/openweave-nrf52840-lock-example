@@ -53,24 +53,6 @@ using namespace ::nl::Weave::DeviceLayer;
 #define RUN_UNIT_TESTS 0
 #define WOBLE_ENABLED 1
 #define OPENTHREAD_ENABLED 1
-#define OPENTHREAD_TEST_NETWORK_ENABLED 1
-
-
-// ================================================================================
-// OpenThread Test Network Information
-// ================================================================================
-
-#if OPENTHREAD_TEST_NETWORK_ENABLED
-
-#define OPENTHREAD_TEST_NETWORK_NAME "WARP"
-#define OPENTHREAD_TEST_NETWORK_PANID 0x7777
-#define OPENTHREAD_TEST_NETWORK_EXTENDED_PANID { 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11 }
-#define OPENTHREAD_TEST_NETWORK_CHANNEL 26
-#define OPENTHREAD_TEST_NETWORK_MASTER_KEY { 0xB8, 0x98, 0x3A, 0xED, 0x95, 0x40, 0x64, 0xCC, 0x4B, 0xAC, 0xB3, 0xF6, 0xF1, 0x45, 0xD1, 0x98  }
-
-#endif // OPENTHREAD_TEST_NETWORK_ENABLED
-
-
 
 // ================================================================================
 // Logging Support
@@ -262,7 +244,7 @@ int main(void)
 #endif
 
     NRF_LOG_INFO("==================================================");
-    NRF_LOG_INFO("openweave-nrf52840-bringup starting");
+    NRF_LOG_INFO("openweave-nrf52840-lock-example starting");
     NRF_LOG_INFO("==================================================");
 
     // Configure LED-pins as outputs
@@ -380,74 +362,6 @@ int main(void)
     }
 
 #endif // OPENTHREAD_ENABLED
-
-#if OPENTHREAD_TEST_NETWORK_ENABLED
-
-    {
-        otError otRet;
-        otInstance * otInst = ThreadStackMgrImpl().OTInstance();
-
-        if (!otDatasetIsCommissioned(otInst))
-        {
-            NRF_LOG_INFO("Commissioning test Thread network");
-
-            otRet = otThreadSetNetworkName(otInst, OPENTHREAD_TEST_NETWORK_NAME);
-            if (otRet != OT_ERROR_NONE)
-            {
-                NRF_LOG_INFO("otThreadSetNetworkName() failed");
-                APP_ERROR_HANDLER(otRet);
-            }
-
-            otRet = otLinkSetPanId(otInst, OPENTHREAD_TEST_NETWORK_PANID);
-            if (otRet != OT_ERROR_NONE)
-            {
-                NRF_LOG_INFO("otLinkSetPanId() failed");
-                APP_ERROR_HANDLER(otRet);
-            }
-
-            {
-                struct otExtendedPanId exPanId = { OPENTHREAD_TEST_NETWORK_EXTENDED_PANID };
-                otRet = otThreadSetExtendedPanId(otInst, &exPanId);
-                if (otRet != OT_ERROR_NONE)
-                {
-                    NRF_LOG_INFO("otThreadSetExtendedPanId() failed");
-                    APP_ERROR_HANDLER(otRet);
-                }
-            }
-
-            otRet = otLinkSetChannel(otInst, OPENTHREAD_TEST_NETWORK_CHANNEL);
-            if (otRet != OT_ERROR_NONE)
-            {
-                NRF_LOG_INFO("otLinkSetChannel() failed");
-                APP_ERROR_HANDLER(otRet);
-            }
-
-            {
-                struct otMasterKey masterKey = { OPENTHREAD_TEST_NETWORK_MASTER_KEY };
-                otRet = otThreadSetMasterKey(otInst, &masterKey);
-                if (otRet != OT_ERROR_NONE)
-                {
-                    NRF_LOG_INFO("otThreadSetMasterKey() failed");
-                    APP_ERROR_HANDLER(otRet);
-                }
-            }
-
-            otRet = otThreadSetEnabled(otInst, true);
-            if (otRet != OT_ERROR_NONE)
-            {
-                NRF_LOG_INFO("otThreadSetEnabled() failed");
-                APP_ERROR_HANDLER(otRet);
-            }
-        }
-        else
-        {
-            NRF_LOG_INFO("Thread network already commissioned");
-        }
-
-        NRF_LOG_INFO("OpenThread initialization complete");
-    }
-
-#endif // OPENTHREAD_TEST_NETWORK_ENABLED
 
 #if TEST_TASK_ENABLED
 

@@ -18,7 +18,7 @@
 
 # 
 #   @file
-#         Makefile for building the nRF52840 OpenWeave bring-up app.
+#         Makefile for building the nRF52840 OpenWeave lock example.
 #
 
 PROJ_DIR := .
