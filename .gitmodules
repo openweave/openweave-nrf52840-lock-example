@@ -2,3 +2,6 @@
 	path = third_party/openweave-core
 	url = https://github.com/openweave/openweave-core.git
 	branch = feature/nrf52840-device-layer
+[submodule "openthread"]
+	path = openthread
+	url = https://github.com/openthread/openthread.git
