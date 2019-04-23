@@ -24,6 +24,9 @@ language: generic
 
 sudo: required
 
+git:
+  submodules: false
+
 before_install:
   - .travis/before_install.sh
 
