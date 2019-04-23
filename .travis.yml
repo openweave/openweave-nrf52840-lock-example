@@ -1,0 +1,61 @@
+#
+#    Copyright 2018-2019 Google LLC. All Rights Reserved.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+#
+
+#
+#    Description:
+#      This file is the Travis CI hosted, distributed continuous
+#      integration configuration file for openweave-nrf52840-lock-example.
+#
+
+language: generic
+
+sudo: required
+
+before_install:
+  - .travis/before_install.sh
+
+script:
+  - .travis/script.sh
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
+matrix:
+  include:
+    - name: "NRF52840"
+      env: BUILD_TARGET="nrf52840"
+
+#
+#   deploy description:
+#      Travis CI supports uploading to Google Cloud Storage (GCS).
+#      openweave gcs bucket location: happy-test-log/<build_number> under link: https://storage.cloud.google.com/openweave"
+#      tags: true: deployment is triggered if and only if $TRAVIS_TAG is set here.
+#      Travis-CI help link: https://docs.travis-ci.com/user/deployment/gcs/
+#
+
+#deploy:
+#  provider: gcs
+#  access_key_id: GOOGNPZYTVTEPZM5VBRAVVUU
+#  secret_access_key:
+#    secure: B7s1vLBrf2B3qvZ4trXfonkFkkWdO/BxXWCoJ9k+Jy3DQgWO6ibCSMfSv9f2pflJJpRimEZaqF6e6f1G/ojole8k19GYsj4iwuTkjBswF3E28OLV7SVvpIfDdKuRVMA+NPRfXAQVJY8yEyjpyHV8CkpO5+lE7iSGqFHQrdUVjCKtYT4loz7ABucP22BHa2FOowZuM2Yed+GtHDsWwcz5KfKl4E+SiRK9pkCno//ivP475JxNPuPN2f0W3JIMLY4r/hrTquzdUwYrKR5PaZn+S5IQ6Tc1pYlolei4l51O3y/jlCebjK2UpGziOjiHTAn+YPn6cUW4XL8UtWhP7qNts6ItpSAzKpG2ehIJ5F38UyMfCr9xK1PUSzj46DXCNyPGU/zXBqBj8o/ea7st0dbNqWVVM/ebMpSlT0aW+PRvVLfqyXwKKU6gv3b/rQg5/oybPzRIUQyAp9C6DXfyJv0LVtsDo4cvQkXrCZqzXm4kkUnRmp7ha4Dzd2tshEtciS6BNeT9uAXMiJgjmiHSTz55eqtFeiQA7fiB6Fk2Cv5WjIofClU6NAq+jaOHf6Qylk34Oy8N7Tfxmgw4cVj4slfxVHATG7AZ9YurH3G4ZQB2sNNJB00IF9mInJ//3Lz6/2VZYxIZnldkrEIzt3JQAJf2sUP/6Nmi/rYW/yMEIG9zyQY=
+#  bucket: openweave
+#  skip_cleanup: true
+#  acl: public-read
+#  upload-dir: happy-test-log/$TRAVIS_BUILD_NUMBER
+#  local-dir: "$TRAVIS_BUILD_DIR/happy-test-logs"
+#  on:
+#    all_branches: true
+#    tags: true
