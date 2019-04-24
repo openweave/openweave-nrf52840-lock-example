@@ -34,7 +34,7 @@ script:
   - .travis/script.sh
 
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - .travis/setup_build_artifacts.sh
 
 matrix:
   include:
@@ -58,7 +58,7 @@ matrix:
 #  skip_cleanup: true
 #  acl: public-read
 #  upload-dir: happy-test-log/$TRAVIS_BUILD_NUMBER
-#  local-dir: "$TRAVIS_BUILD_DIR/happy-test-logs"
+#  local-dir: "$TRAVIS_BUILD_DIR/build_artifacts"
 #  on:
 #    all_branches: true
 #    tags: true
