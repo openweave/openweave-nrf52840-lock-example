@@ -34,8 +34,5 @@ mkdir -p ${BUILD_ARTIFACTS_DIR_PATH} || exit 1
 # Copy build artifacts into the directory created in the previous step
 cp ${TRAVIS_BUILD_DIR}/build/openweave-nrf52840-lock-example.hex ${BUILD_ARTIFACTS_DIR_PATH}
 cp ${TRAVIS_BUILD_DIR}/build/openweave-nrf52840-lock-example.map ${BUILD_ARTIFACTS_DIR_PATH}
-cp ${TRAVIS_BUILD_DIR}/build/openweave-nrf52840-lock-example.log ${BUILD_ARTIFACTS_DIR_PATH}
-cp $(NRF5_SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_6.1.0_softdevice.hex ${BUILD_ARTIFACTS_DIR_PATH}
-
-# TODO: Also copy the build log
-
+cp ${TRAVIS_BUILD_DIR}/build/openweave-nrf52840-lock-example.out ${BUILD_ARTIFACTS_DIR_PATH}
+cp ${NRF5_SDK_ROOT}/components/softdevice/s140/hex/s140_nrf52_6.1.0_softdevice.hex ${BUILD_ARTIFACTS_DIR_PATH}
