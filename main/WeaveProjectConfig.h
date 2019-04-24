@@ -122,4 +122,12 @@
 
 #define WEAVE_DEVICE_CONFIG_USE_TEST_SERIAL_NUMBER "DUMMY_SN"
 
+/**
+ * WEAVE_DEVICE_CONFIG_ENABLE_TRAIT_MANAGER
+ *
+ * Explicitly disable the trait manager since the application will be taking care of publishing
+ * and subscribing to traits
+ */
+#define WEAVE_DEVICE_CONFIG_ENABLE_TRAIT_MANAGER 0
+
 #endif // WEAVE_PROJECT_CONFIG_H
