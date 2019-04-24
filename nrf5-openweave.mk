@@ -30,15 +30,15 @@
 #       include nrf5-openweave.mk
 #
 #       PROJECT_ROOT := $(realpath .)
-#       
+#
 #       APP := openweave-nrf52840-bringup
-#       
+#
 #       SRCS = \
 #           $(PROJECT_ROOT)/main.cpp \
 #           ...
 #
 #       $(call GenerateBuildRules)
-#       
+#
 
 # ==================================================
 # General settings
@@ -50,11 +50,11 @@ OPENWEAVE_ROOT ?= $(realpath .)/third_party/openweave-core
 # Archtecture for which OpenWeave will be built.
 OPENWEAVE_HOST_ARCH := armv7-unknown-linux-gnu
 
-# Directory into which the OpenWeave build system will place its output. 	
+# Directory into which the OpenWeave build system will place its output.
 OPENWEAVE_OUTPUT_DIR = $(OUTPUT_DIR)/openweave
 
-# Directory containing nRF5-specific Weave project configuration files.
-OPENWEAVE_PROJECT_CONFIG_DIR = $(OPENWEAVE_ROOT)/build/config/nrf5
+# An optional file containing application-specific configuration overrides.
+OPENWEAVE_PROJECT_CONFIG = $(wildcard $(PROJECT_ROOT)/main/WeaveProjectConfig.h)
 
 # Architcture on which OpenWeave is being built.
 OPENWEAVE_BUILD_ARCH = $(shell $(OPENWEAVE_ROOT)/third_party/nlbuild-autotools/repo/third_party/autoconf/config.guess | sed -e 's/[[:digit:].]*$$//g')
@@ -64,8 +64,8 @@ OPENWEAVE_BUILD_ARCH = $(shell $(OPENWEAVE_ROOT)/third_party/nlbuild-autotools/r
 # Compilation flags specific to building OpenWeave
 # ==================================================
 
-OPENWEAVE_CPPFLAGS = $(STD_CFLAGS) $(CFLAGS) $(DEBUG_FLAGS) $(OPT_FLAGS) $(DEFINE_FLAGS) $(INC_FLAGS) 
-OPENWEAVE_CXXFLAGS = $(STD_CXXFLAGS) $(CXXFLAGS) 
+OPENWEAVE_CPPFLAGS = $(STD_CFLAGS) $(CFLAGS) $(DEBUG_FLAGS) $(OPT_FLAGS) $(DEFINE_FLAGS) $(INC_FLAGS)
+OPENWEAVE_CXXFLAGS = $(STD_CXXFLAGS) $(CXXFLAGS)
 
 
 # ==================================================
@@ -89,11 +89,12 @@ OPENWEAVE_CONFIGURE_OPTIONS = \
     --with-inet-endpoint="tcp udp" \
     --with-openssl=no \
     --with-logging-style=external \
-    --with-weave-project-includes=$(OPENWEAVE_PROJECT_CONFIG_DIR) \
-    --with-weave-system-project-includes=$(OPENWEAVE_PROJECT_CONFIG_DIR) \
-    --with-weave-inet-project-includes=$(OPENWEAVE_PROJECT_CONFIG_DIR) \
-    --with-weave-ble-project-includes=$(OPENWEAVE_PROJECT_CONFIG_DIR) \
-    --with-weave-warm-project-includes=$(OPENWEAVE_PROJECT_CONFIG_DIR) \
+    --with-weave-project-includes=$(OPENWEAVE_PROJECT_CONFIG) \
+    --with-weave-system-project-includes=$(OPENWEAVE_PROJECT_CONFIG) \
+    --with-weave-inet-project-includes=$(OPENWEAVE_PROJECT_CONFIG) \
+    --with-weave-ble-project-includes=$(OPENWEAVE_PROJECT_CONFIG) \
+    --with-weave-warm-project-includes=$(OPENWEAVE_PROJECT_CONFIG) \
+    --with-weave-device-project-includes=$(OPENWEAVE_PROJECT_CONFIG) \
     --disable-ipv4 \
     --disable-tests \
     --disable-tools \
@@ -110,13 +111,14 @@ endif
 
 
 # ==================================================
-# Adjustments to standard build settings to 
+# Adjustments to standard build settings to
 #   incorporate OpenWeave
 # ==================================================
 
 # Add OpenWeave-specific paths to the standard include directories.
 STD_INC_DIRS += \
     $(OPENWEAVE_OUTPUT_DIR)/include \
+    $(OPENWEAVE_OUTPUT_DIR)/src/include \
     $(OPENWEAVE_ROOT)/src/adaptations/device-layer/trait-support \
     $(OPENWEAVE_ROOT)/third_party/lwip/repo/lwip/src/include \
     $(OPENWEAVE_ROOT)/src/lwip \
@@ -126,7 +128,7 @@ STD_INC_DIRS += \
 # Add the location of OpenWeave libraries to application link action.
 STD_LDFLAGS += -L$(OPENWEAVE_OUTPUT_DIR)/lib
 
-# Add OpenWeave libraries to standard libraries list. 
+# Add OpenWeave libraries to standard libraries list.
 STD_LIBS += \
     -lDeviceLayer \
 	-lWeave \
@@ -161,21 +163,21 @@ STD_LINK_PREREQUISITES += \
 # ==================================================
 
 # Add OpenWeaveBuildRules to the list of late-bound build rules that
-# will be evaluated when GenerateBuildRules is called. 
+# will be evaluated when GenerateBuildRules is called.
 LATE_BOUND_RULES += OpenWeaveBuildRules
 
 # Rules for configuring, building and installing OpenWeave.
 define OpenWeaveBuildRules
 
-.PHONY : config-weave check-config-weave build-weave install-weave clean-weave
+.PHONY : config-weave .check-config-weave build-weave install-weave clean-weave
 
-check-config-weave : | $(OPENWEAVE_OUTPUT_DIR)
+.check-config-weave : | $(OPENWEAVE_OUTPUT_DIR)
 	$(NO_ECHO)echo $(OPENWEAVE_ROOT)/configure $(OPENWEAVE_CONFIGURE_OPTIONS) > $(OPENWEAVE_OUTPUT_DIR)/config.args.tmp; \
 	(test -r $(OPENWEAVE_OUTPUT_DIR)/config.args && cmp -s $(OPENWEAVE_OUTPUT_DIR)/config.args.tmp $(OPENWEAVE_OUTPUT_DIR)/config.args) || \
 	    mv $(OPENWEAVE_OUTPUT_DIR)/config.args.tmp $(OPENWEAVE_OUTPUT_DIR)/config.args; \
 	 rm -f $(OPENWEAVE_OUTPUT_DIR)/config.args.tmp;
 
-$(OPENWEAVE_OUTPUT_DIR)/config.args : check-config-weave
+$(OPENWEAVE_OUTPUT_DIR)/config.args : .check-config-weave
 	@: # Null action required to work around make's crazy timestamp caching behavior.
 
 $(OPENWEAVE_OUTPUT_DIR)/config.status : $(OPENWEAVE_OUTPUT_DIR)/config.args
@@ -211,12 +213,12 @@ define TargetHelp +=
 
 
   config-weave          Run the OpenWeave configure script.
-  
+
   build-weave           Build the OpenWeave libraries.
-  
-  install-weave         Install OpenWeave libraries and headers in 
+
+  install-weave         Install OpenWeave libraries and headers in
                         build output directory for use by application.
-  
+
   clean-weave           Clean all build outputs produced by the OpenWeave
                         build process.
 endef
