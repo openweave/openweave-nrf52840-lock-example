@@ -21,17 +21,21 @@
 #      Travis CI build script for nRF52840 integration builds.
 #
 
+# Setup build artifacts only 
+# NRF5_SDK_ROOT variable pointing to the nRF5x SDK for Thread and Zigbee.
+NRF5_SDK_ROOT=${TRAVIS_BUILD_DIR}/nRF5x-SDK-for-Thread-and-Zigbee
+
+BUILD_ARTIFACTS_DIR_NAME=build_artifacts
+BUILD_ARTIFACTS_DIR_PATH=${TRAVIS_BUILD_DIR}/${BUILD_ARTIFACTS_DIR_NAME}
+
 # Create a new directory for build artifacts
-mkdir -p ${TRAVIS_BUILD_DIR}/build_artifacts || exit 1
+mkdir -p ${BUILD_ARTIFACTS_DIR_PATH} || exit 1
 
 # Copy build artifacts into the directory created in the previous step
-cp ${TRAVIS_BUILD_DIR}/build/openweave-nrf52840-lock-example.hex ${TRAVIS_BUILD_DIR}/build_artifacts
-cp ${TRAVIS_BUILD_DIR}/build/openweave-nrf52840-lock-example.map ${TRAVIS_BUILD_DIR}/build_artifacts
-cp $(NRF5_SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_6.1.0_softdevice.hex ${TRAVIS_BUILD_DIR}/build_artifacts
+cp ${TRAVIS_BUILD_DIR}/build/openweave-nrf52840-lock-example.hex ${BUILD_ARTIFACTS_DIR_PATH}
+cp ${TRAVIS_BUILD_DIR}/build/openweave-nrf52840-lock-example.map ${BUILD_ARTIFACTS_DIR_PATH}
+cp ${TRAVIS_BUILD_DIR}/build/openweave-nrf52840-lock-example.log ${BUILD_ARTIFACTS_DIR_PATH}
+cp $(NRF5_SDK_ROOT)/components/softdevice/s140/hex/s140_nrf52_6.1.0_softdevice.hex ${BUILD_ARTIFACTS_DIR_PATH}
 
-# Display all the copied build artifacts
-ll ${TRAVIS_BUILD_DIR}/build_artifacts
-
-
-
+# TODO: Also copy the build log
 
