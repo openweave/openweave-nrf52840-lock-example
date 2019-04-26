@@ -10,8 +10,12 @@
 #include "nrf_sdh_soc.h"
 #endif
 #include "nrf_drv_clock.h"
+#if NRF_CRYPTO_ENABLED
 #include "nrf_crypto.h"
+#endif
 #include "mem_manager.h"
+#include "app_timer.h"
+#include "app_button.h"
 
 #if NRF_LOG_ENABLED
 #include "nrf_log_ctrl.h"
@@ -48,7 +52,9 @@ using namespace ::nl::Weave::DeviceLayer;
 // Test App Feature Config
 // ================================================================================
 
-#define TEST_TASK_ENABLED 1
+#define TIMER_TEST_ENABLED 1
+#define BUTTON_TEST_ENABLED 1
+#define TEST_TASK_ENABLED 0
 #define RUN_UNIT_TESTS 0
 #define WOBLE_ENABLED 1
 #define OPENTHREAD_ENABLED 1
@@ -160,6 +166,113 @@ static void TestTaskMain(void * pvParameter)
 
 
 // ================================================================================
+// Test Timer
+// ================================================================================
+
+#if TIMER_TEST_ENABLED
+
+#define TIMER_PERIOD_MS 1000
+
+static void TimerEventHandler(void * p_context)
+{
+    bsp_board_led_invert(BSP_BOARD_LED_3);
+}
+
+static void InitTimerTest(void)
+{
+    ret_code_t ret;
+
+    APP_TIMER_DEF(sTestTimer);
+
+    ret = app_timer_init();
+    if (ret != NRF_SUCCESS)
+    {
+        NRF_LOG_INFO("app_timer_init() failed");
+        APP_ERROR_HANDLER(ret);
+    }
+
+    ret = app_timer_create(&sTestTimer, APP_TIMER_MODE_REPEATED, TimerEventHandler);
+    if (ret != NRF_SUCCESS)
+    {
+        NRF_LOG_INFO("app_timer_create() failed");
+        APP_ERROR_HANDLER(ret);
+    }
+
+    ret = app_timer_start(sTestTimer, pdMS_TO_TICKS(TIMER_PERIOD_MS), NULL);
+    if (ret != NRF_SUCCESS)
+    {
+        NRF_LOG_INFO("app_timer_start() failed");
+        APP_ERROR_HANDLER(ret);
+    }
+
+    NRF_LOG_INFO("Timer test enabled");
+}
+
+#endif // TIMER_TEST_ENABLED
+
+// ================================================================================
+// Button Test
+// ================================================================================
+
+#if BUTTON_TEST_ENABLED
+
+#define TEST_BUTTON_PIN BUTTON_1
+#define TEST_BUTTON_DEBOUNCE_PERIOD_MS 50
+
+static void ButtonEventHandler(uint8_t pin_no, uint8_t button_action)
+{
+    int buttonNum;
+    switch (pin_no)
+    {
+    case BUTTON_1:
+        buttonNum = 1;
+        break;
+    case BUTTON_2:
+        buttonNum = 2;
+        break;
+    case BUTTON_3:
+        buttonNum = 4;
+        break;
+    case BUTTON_4:
+        buttonNum = 4;
+        break;
+    default:
+        buttonNum = -1;
+        break;
+    }
+    NRF_LOG_INFO("Button %d %s", buttonNum, (button_action == APP_BUTTON_PUSH) ? "PUSH" : "RELEASE");
+}
+
+static void InitButtonTest(void)
+{
+    ret_code_t ret;
+
+    static app_button_cfg_t sButtons[] =
+    {
+        { TEST_BUTTON_PIN, APP_BUTTON_ACTIVE_LOW, BUTTON_PULL, ButtonEventHandler }
+    };
+
+    ret = app_button_init(sButtons, ARRAY_SIZE(sButtons), pdMS_TO_TICKS(TEST_BUTTON_DEBOUNCE_PERIOD_MS));
+    if (ret != NRF_SUCCESS)
+    {
+        NRF_LOG_INFO("app_button_init() failed");
+        APP_ERROR_HANDLER(ret);
+    }
+
+    ret = app_button_enable();
+    if (ret != NRF_SUCCESS)
+    {
+        NRF_LOG_INFO("app_button_enable() failed");
+        APP_ERROR_HANDLER(ret);
+    }
+
+    NRF_LOG_INFO("Button test enabled");
+}
+
+#endif // BUTTON_TEST_ENABLED
+
+
+// ================================================================================
 // SoftDevice Support
 // ================================================================================
 
@@ -243,7 +356,7 @@ int main(void)
 #endif
 
     NRF_LOG_INFO("==================================================");
-    NRF_LOG_INFO("openweave-nrf52840-lock-example starting");
+    NRF_LOG_INFO("openweave-nrf52840-bringup starting");
     NRF_LOG_INFO("==================================================");
 
     // Configure LED-pins as outputs
@@ -280,12 +393,14 @@ int main(void)
         APP_ERROR_HANDLER(ret);
     }
 
+#if NRF_CRYPTO_ENABLED
     ret = nrf_crypto_init();
     if (ret != NRF_SUCCESS)
     {
         NRF_LOG_INFO("nrf_crypto_init() failed");
         APP_ERROR_HANDLER(ret);
     }
+#endif
 
 #if defined(SOFTDEVICE_PRESENT) && SOFTDEVICE_PRESENT
 
@@ -373,6 +488,14 @@ int main(void)
     }
 
 #endif // TEST_TASK_ENABLED
+
+#if TIMER_TEST_ENABLED
+    InitTimerTest();
+#endif
+
+#if BUTTON_TEST_ENABLED
+    InitButtonTest();
+#endif
 
     // Activate deep sleep mode
     SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;

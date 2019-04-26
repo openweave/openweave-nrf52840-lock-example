@@ -22,14 +22,21 @@
 #
 
 #
-#   To build an application using this file, include the file in a
-#   project-specific Makefile, define make variables describing the
-#   application and how it should be built, and then call the
-#   GenerateBuildRules function.  E.g.:
+#   This makefile is primarily intended to support building the
+#   OpenWeave example applications on Nordic platforms.  However
+#   external developers should feel free to use it if they find
+#   it useful.
 #
-#       include nrf5-app.mk
+#   To build an application using this makefile, include the file
+#   in a project-specific Makefile, define make variables describing
+#   the application and how it should be built, and then call the
+#   GenerateBuildRules function.  E.g.:
+#   
+#       PROJECT_ROOT = $(realpath .)
+#
+#       BUILD_SUPPORT_DIR = $(PROJECT_ROOT)/third_party/openweave-core/build/nrf5
 #       
-#       PROJECT_ROOT := $(realpath .)
+#       include $(BUILD_SUPPORT_DIR)/nrf5-app.mk
 #       
 #       APP := openweave-nrf52840-bringup
 #       
@@ -243,14 +250,14 @@ endef
 # General build rules
 # ==================================================
 
-.PHONY : $(APP) flash flash_only flash_softdevice erase clean help
+.PHONY : $(APP) flash flash-app flash_app flash-softdevice flash_softdevice erase clean help
 
 # Convert executable to Intel hex format
 %.hex : %.out
 	$(NO_ECHO)$(OBJCOPY) -O ihex $< $@
 
 # Flash the SoftDevice
-flash_softdevice :
+flash-softdevice flash_softdevice :
 	@echo "FLASH $(SOFTDEVICE_IMAGE)"
 	$(NO_ECHO)$(NRFJPROG) -f nrf52 --program $(SOFTDEVICE_IMAGE) --sectorerase
 	@echo "RESET DEVICE"
@@ -304,7 +311,7 @@ flash : $(APP_HEX)
 	$(NO_ECHO)$$(NRFJPROG) -f nrf52 --reset
 
 # Rule to flash a pre-built application
-flash_app :
+flash-app flash_app :
 	@echo "FLASH $$(APP_HEX)"
 	$(NO_ECHO)$$(NRFJPROG) -f nrf52 --program $$(APP_HEX) --sectorerase
 	@echo "RESET DEVICE"
@@ -374,10 +381,10 @@ define TargetHelp
   
   flash                 Build and flash the application onto the device.
   
-  flash_app             Flash the application onto the device without building
+  flash-app             Flash the application onto the device without building
                         it first.
   
-  flash_softdevice      Flash the Nordic SoftDevice image onto the device.
+  flash-softdevice      Flash the Nordic SoftDevice image onto the device.
   
   erase                 Wipe the device's flash memory.
   
