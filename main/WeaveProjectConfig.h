@@ -49,7 +49,7 @@
  * Use yale vendor id for now
  * TODO: Update to Google Vendor id when resource is available in the cloud
  */
-#define WEAVE_DEVICE_CONFIG_DEVICE_VENDOR_ID 0xE727
+#define WEAVE_DEVICE_CONFIG_DEVICE_VENDOR_ID 0xE100
 
 /**
  * WEAVE_DEVICE_CONFIG_DEVICE_PRODUCT_ID
@@ -57,7 +57,7 @@
  * The unique id assigned by the device vendor to identify the product or device type.  This
  * number is scoped to the device vendor id.
  */
-#define WEAVE_DEVICE_CONFIG_DEVICE_PRODUCT_ID 0x0001
+#define WEAVE_DEVICE_CONFIG_DEVICE_PRODUCT_ID 0xFE00
 
 /**
  * WEAVE_DEVICE_CONFIG_DEVICE_PRODUCT_REVISION
