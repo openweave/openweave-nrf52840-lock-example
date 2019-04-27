@@ -18,20 +18,20 @@
 
 # 
 #   @file
-#         Makefile for building the nRF52840 OpenWeave bring-up app.
+#         Makefile for building the OpenWeave nRF52840 Lock Example Application.
 #
 
-PROJECT_ROOT = $(realpath .)
+PROJECT_ROOT := $(realpath .)
 
-OPENWEAVE_ROOT = $(PROJECT_ROOT)/third_party/openweave-core
+OPENWEAVE_ROOT ?= $(PROJECT_ROOT)/third_party/openweave-core
 
 BUILD_SUPPORT_DIR = $(OPENWEAVE_ROOT)/build/nrf5
 
-include $(PROJECT_ROOT)/nrf5-app.mk
+include $(BUILD_SUPPORT_DIR)/nrf5-app.mk
 include $(BUILD_SUPPORT_DIR)/nrf5-openweave.mk
 include $(BUILD_SUPPORT_DIR)/nrf5-openthread.mk
 
-APP := openweave-nrf52840-lock-example
+APP = openweave-nrf52840-lock-example
 
 SRCS = \
     $(PROJECT_ROOT)/main/main.cpp \
@@ -151,11 +151,10 @@ DEFINES = \
     __STACK_SIZE=8192 \
     SOFTDEVICE_PRESENT
 
-# Use an appication-specifc OpenThread project config file to
-# override the default OpenThread configuration.  (Note that
-# this only has effect when USE_PREBUILT_OPENTHREAD=0).
-OPENTHREAD_PROJECT_CONFIG_FILE = $(PROJECT_ROOT)/main/OpenThreadConfig.h
-
 OPENWEAVE_PROJECT_CONFIG = $(PROJECT_ROOT)/main/WeaveProjectConfig.h
+
+OPENTHREAD_PROJECT_CONFIG = $(PROJECT_ROOT)/main/OpenThreadConfig.h
+    
+LINKER_SCRIPT = $(PROJECT_ROOT)/main/openweave-nrf52840-lock-example.ld
 
 $(call GenerateBuildRules)
