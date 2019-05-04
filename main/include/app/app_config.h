@@ -83,7 +83,18 @@
 #define NRF_QUEUE_ENABLED 1
 #define APP_TIMER_ENABLED 1
 #define BUTTON_ENABLED 1
+
 #define GPIOTE_ENABLED 1
+#define GPIOTE_CONFIG_NUM_OF_LOW_POWER_EVENTS 2
+
+
+// <o> APP_TIMER_CONFIG_OP_QUEUE_SIZE - Capacity of timer requests queue. 
+// <i> Size of the queue depends on how many timers are used
+// <i> in the system, how often timers are started and overall
+// <i> system latency. If queue size is too small app_timer calls
+// <i> will fail.
+
+#define APP_TIMER_CONFIG_OP_QUEUE_SIZE 10
 
 #endif //APP_CONFIG_H
 

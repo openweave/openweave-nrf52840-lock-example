@@ -14,8 +14,6 @@
 #include "nrf_crypto.h"
 #endif
 #include "mem_manager.h"
-#include "app_timer.h"
-#include "app_button.h"
 
 #if NRF_LOG_ENABLED
 #include "nrf_log_ctrl.h"
@@ -42,6 +40,8 @@ extern "C" {
 #include <Weave/DeviceLayer/internal/testing/GroupKeyStoreUnitTest.h>
 #include <Weave/DeviceLayer/internal/testing/SystemClockUnitTest.h>
 
+#include <AppTask.h>
+
 using namespace ::nl;
 using namespace ::nl::Inet;
 using namespace ::nl::Weave;
@@ -52,10 +52,6 @@ using namespace ::nl::Weave::DeviceLayer;
 // Test App Feature Config
 // ================================================================================
 
-#define TIMER_TEST_ENABLED 1
-#define BUTTON_TEST_ENABLED 1
-#define TEST_TASK_ENABLED 0
-#define RUN_UNIT_TESTS 0
 #define WOBLE_ENABLED 1
 #define OPENTHREAD_ENABLED 1
 
@@ -107,169 +103,6 @@ void OnLogOutput(void)
 } // namespace nl
 
 #endif //NRF_LOG_ENABLED
-
-
-// ================================================================================
-// Test Task
-// ================================================================================
-
-#if TEST_TASK_ENABLED
-
-#define TEST_TASK_STACK_SIZE (800)
-#define TEST_TASK_PRIORITY 1
-
-static TaskHandle_t sTestTaskHandle;
-
-static void TestTaskAlive()
-{
-    bsp_board_led_invert(BSP_BOARD_LED_2);
-}
-
-static void TestTaskMain(void * pvParameter)
-{
-    NRF_LOG_INFO("Test task running");
-    bsp_board_led_invert(BSP_BOARD_LED_1);
-
-#if RUN_UNIT_TESTS
-    Internal::RunSystemClockUnitTest();
-
-    NRF_LOG_INFO("System clock test complete");
-
-    // Test the core configuration interface
-    Internal::NRF5Config::RunConfigUnitTest();
-
-    NRF_LOG_INFO("NRF5Config test complete");
-
-    // Test the group key store
-    {
-        Internal::GroupKeyStoreImpl groupKeyStore;
-        err = groupKeyStore.Init();
-        APP_ERROR_CHECK(err);
-        Internal::RunGroupKeyStoreUnitTest<Internal::GroupKeyStoreImpl>(&groupKeyStore);
-    }
-
-    NRF_LOG_INFO("GroupKeyStore test complete");
-
-    NRF_LOG_INFO("Unit tests done");
-#endif
-
-
-    while (true)
-    {
-        const TickType_t delay = pdMS_TO_TICKS(1000);
-        vTaskDelay(delay);
-        TestTaskAlive();
-    }
-}
-
-#endif // TEST_TASK_ENABLED
-
-
-// ================================================================================
-// Test Timer
-// ================================================================================
-
-#if TIMER_TEST_ENABLED
-
-#define TIMER_PERIOD_MS 1000
-
-static void TimerEventHandler(void * p_context)
-{
-    bsp_board_led_invert(BSP_BOARD_LED_3);
-}
-
-static void InitTimerTest(void)
-{
-    ret_code_t ret;
-
-    APP_TIMER_DEF(sTestTimer);
-
-    ret = app_timer_init();
-    if (ret != NRF_SUCCESS)
-    {
-        NRF_LOG_INFO("app_timer_init() failed");
-        APP_ERROR_HANDLER(ret);
-    }
-
-    ret = app_timer_create(&sTestTimer, APP_TIMER_MODE_REPEATED, TimerEventHandler);
-    if (ret != NRF_SUCCESS)
-    {
-        NRF_LOG_INFO("app_timer_create() failed");
-        APP_ERROR_HANDLER(ret);
-    }
-
-    ret = app_timer_start(sTestTimer, pdMS_TO_TICKS(TIMER_PERIOD_MS), NULL);
-    if (ret != NRF_SUCCESS)
-    {
-        NRF_LOG_INFO("app_timer_start() failed");
-        APP_ERROR_HANDLER(ret);
-    }
-
-    NRF_LOG_INFO("Timer test enabled");
-}
-
-#endif // TIMER_TEST_ENABLED
-
-// ================================================================================
-// Button Test
-// ================================================================================
-
-#if BUTTON_TEST_ENABLED
-
-#define TEST_BUTTON_PIN BUTTON_1
-#define TEST_BUTTON_DEBOUNCE_PERIOD_MS 50
-
-static void ButtonEventHandler(uint8_t pin_no, uint8_t button_action)
-{
-    int buttonNum;
-    switch (pin_no)
-    {
-    case BUTTON_1:
-        buttonNum = 1;
-        break;
-    case BUTTON_2:
-        buttonNum = 2;
-        break;
-    case BUTTON_3:
-        buttonNum = 4;
-        break;
-    case BUTTON_4:
-        buttonNum = 4;
-        break;
-    default:
-        buttonNum = -1;
-        break;
-    }
-    NRF_LOG_INFO("Button %d %s", buttonNum, (button_action == APP_BUTTON_PUSH) ? "PUSH" : "RELEASE");
-}
-
-static void InitButtonTest(void)
-{
-    ret_code_t ret;
-
-    static app_button_cfg_t sButtons[] =
-    {
-        { TEST_BUTTON_PIN, APP_BUTTON_ACTIVE_LOW, BUTTON_PULL, ButtonEventHandler }
-    };
-
-    ret = app_button_init(sButtons, ARRAY_SIZE(sButtons), pdMS_TO_TICKS(TEST_BUTTON_DEBOUNCE_PERIOD_MS));
-    if (ret != NRF_SUCCESS)
-    {
-        NRF_LOG_INFO("app_button_init() failed");
-        APP_ERROR_HANDLER(ret);
-    }
-
-    ret = app_button_enable();
-    if (ret != NRF_SUCCESS)
-    {
-        NRF_LOG_INFO("app_button_enable() failed");
-        APP_ERROR_HANDLER(ret);
-    }
-
-    NRF_LOG_INFO("Button test enabled");
-}
-
-#endif // BUTTON_TEST_ENABLED
 
 
 // ================================================================================
@@ -360,9 +193,7 @@ int main(void)
     NRF_LOG_INFO("==================================================");
 
     // Configure LED-pins as outputs
-    bsp_board_init(BSP_INIT_LEDS);
-
-    bsp_board_led_invert(BSP_BOARD_LED_0);
+    // bsp_board_init(BSP_INIT_LEDS);
 
 #if defined(SOFTDEVICE_PRESENT) && SOFTDEVICE_PRESENT
 
@@ -417,7 +248,7 @@ int main(void)
         APP_ERROR_CHECK(ret);
     }
 
-#endif // defined(SOFTDEVICE_PRESENT) && SOFTDEVICE_PRESENT
+#endif // defined(SOFTDEVICE_PRESENT) && SOFTDEVICE_PRESENTvi M
 
     NRF_LOG_INFO("Initializing Weave stack");
 
@@ -477,25 +308,12 @@ int main(void)
 
 #endif // OPENTHREAD_ENABLED
 
-#if TEST_TASK_ENABLED
-
-    NRF_LOG_INFO("Starting test task");
-
-    // Start Test task
-    if (xTaskCreate(TestTaskMain, "TEST", TEST_TASK_STACK_SIZE / sizeof(StackType_t), NULL, TEST_TASK_PRIORITY, &sTestTaskHandle) != pdPASS)
+    ret = GetAppTask().Init();
+    if (ret != NRF_SUCCESS)
     {
-        NRF_LOG_INFO("Failed to create TEST task");
+        NRF_LOG_INFO("GetAppTask().Init() failed");
+        APP_ERROR_HANDLER(ret);
     }
-
-#endif // TEST_TASK_ENABLED
-
-#if TIMER_TEST_ENABLED
-    InitTimerTest();
-#endif
-
-#if BUTTON_TEST_ENABLED
-    InitButtonTest();
-#endif
 
     // Activate deep sleep mode
     SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;

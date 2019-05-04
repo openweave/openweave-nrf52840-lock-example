@@ -35,6 +35,16 @@ APP = openweave-nrf52840-lock-example
 
 SRCS = \
     $(PROJECT_ROOT)/main/main.cpp \
+    $(PROJECT_ROOT)/main/AppTask.cpp \
+    $(PROJECT_ROOT)/main/LEDWidget.cpp \
+    $(PROJECT_ROOT)/main/LockWidget.cpp \
+    $(PROJECT_ROOT)/main/WDMFeature.cpp \
+	$(PROJECT_ROOT)/main/traits/BoltLockTraitDataSource.cpp \
+	$(PROJECT_ROOT)/main/traits/BoltLockSettingsTraitDataSink.cpp \
+	$(PROJECT_ROOT)/main/traits/DeviceIdentityTraitDataSource.cpp \
+	$(PROJECT_ROOT)/main/schema/BoltLockTrait.cpp \
+	$(PROJECT_ROOT)/main/schema/BoltLockSettingsTrait.cpp \
+	$(PROJECT_ROOT)/main/schema/DeviceIdentityTrait.cpp \
     $(NRF5_SDK_ROOT)/components/ble/common/ble_advdata.c \
     $(NRF5_SDK_ROOT)/components/ble/common/ble_srv_common.c \
     $(NRF5_SDK_ROOT)/components/ble/nrf_ble_gatt/nrf_ble_gatt.c \
@@ -98,6 +108,13 @@ SRCS = \
 INC_DIRS = \
     $(PROJECT_ROOT) \
     $(PROJECT_ROOT)/main \
+    $(PROJECT_ROOT)/main/traits/include \
+    $(PROJECT_ROOT)/main/schema/include \
+    $(PROJECT_ROOT)/main/include \
+    $(PROJECT_ROOT)/main/include/app \
+    $(PROJECT_ROOT)/main/include/freertos \
+    $(PROJECT_ROOT)/main/include/openthread \
+    $(PROJECT_ROOT)/main/include/openweace-core \
     $(NRF5_SDK_ROOT)/components \
     $(NRF5_SDK_ROOT)/components/boards \
     $(NRF5_SDK_ROOT)/components/ble/ble_advertising \
@@ -151,10 +168,10 @@ DEFINES = \
     __STACK_SIZE=8192 \
     SOFTDEVICE_PRESENT
 
-OPENWEAVE_PROJECT_CONFIG = $(PROJECT_ROOT)/main/WeaveProjectConfig.h
+OPENWEAVE_PROJECT_CONFIG = $(PROJECT_ROOT)/main/include/openweave-core/WeaveProjectConfig.h
 
-OPENTHREAD_PROJECT_CONFIG = $(PROJECT_ROOT)/main/OpenThreadConfig.h
-    
-LINKER_SCRIPT = $(PROJECT_ROOT)/main/openweave-nrf52840-lock-example.ld
+OPENTHREAD_PROJECT_CONFIG = $(PROJECT_ROOT)/main/include/openthread/OpenThreadConfig.h
+
+LINKER_SCRIPT = $(PROJECT_ROOT)/main/ldscripts/openweave-nrf52840-lock-example.ld
 
 $(call GenerateBuildRules)

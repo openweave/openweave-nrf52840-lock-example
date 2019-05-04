@@ -49,7 +49,7 @@
  * Use yale vendor id for now
  * TODO: Update to Google Vendor id when resource is available in the cloud
  */
-#define WEAVE_DEVICE_CONFIG_DEVICE_VENDOR_ID 0xE100
+#define WEAVE_DEVICE_CONFIG_DEVICE_VENDOR_ID 0xE727
 
 /**
  * WEAVE_DEVICE_CONFIG_DEVICE_PRODUCT_ID
@@ -57,7 +57,7 @@
  * The unique id assigned by the device vendor to identify the product or device type.  This
  * number is scoped to the device vendor id.
  */
-#define WEAVE_DEVICE_CONFIG_DEVICE_PRODUCT_ID 0xFE00
+#define WEAVE_DEVICE_CONFIG_DEVICE_PRODUCT_ID 0x0001
 
 /**
  * WEAVE_DEVICE_CONFIG_DEVICE_PRODUCT_REVISION
@@ -89,7 +89,7 @@
  * Enables synchronizing the device's real time clock with a remote Weave Time service
  * using the Weave Time Sync protocol.
  */
-#define WEAVE_DEVICE_CONFIG_ENABLE_WEAVE_TIME_SERVICE_TIME_SYNC 0
+#define WEAVE_DEVICE_CONFIG_ENABLE_WEAVE_TIME_SERVICE_TIME_SYNC 1
 
 /**
  * WEAVE_DEVICE_CONFIG_SERVICE_PROVISIONING_CONNECTIVITY_TIMEOUT
@@ -129,5 +129,7 @@
  * and subscribing to traits
  */
 #define WEAVE_DEVICE_CONFIG_ENABLE_TRAIT_MANAGER 0
+
+#define WEAVE_CONFIG_MAX_BINDINGS	8
 
 #endif // WEAVE_PROJECT_CONFIG_H
