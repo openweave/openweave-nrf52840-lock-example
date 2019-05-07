@@ -39,12 +39,12 @@ SRCS = \
     $(PROJECT_ROOT)/main/LEDWidget.cpp \
     $(PROJECT_ROOT)/main/LockWidget.cpp \
     $(PROJECT_ROOT)/main/WDMFeature.cpp \
-	$(PROJECT_ROOT)/main/traits/BoltLockTraitDataSource.cpp \
-	$(PROJECT_ROOT)/main/traits/BoltLockSettingsTraitDataSink.cpp \
-	$(PROJECT_ROOT)/main/traits/DeviceIdentityTraitDataSource.cpp \
-	$(PROJECT_ROOT)/main/schema/BoltLockTrait.cpp \
-	$(PROJECT_ROOT)/main/schema/BoltLockSettingsTrait.cpp \
-	$(PROJECT_ROOT)/main/schema/DeviceIdentityTrait.cpp \
+    $(PROJECT_ROOT)/main/traits/BoltLockTraitDataSource.cpp \
+    $(PROJECT_ROOT)/main/traits/BoltLockSettingsTraitDataSink.cpp \
+    $(PROJECT_ROOT)/main/traits/DeviceIdentityTraitDataSource.cpp \
+    $(PROJECT_ROOT)/main/schema/BoltLockTrait.cpp \
+    $(PROJECT_ROOT)/main/schema/BoltLockSettingsTrait.cpp \
+    $(PROJECT_ROOT)/main/schema/DeviceIdentityTrait.cpp \
     $(NRF5_SDK_ROOT)/components/ble/common/ble_advdata.c \
     $(NRF5_SDK_ROOT)/components/ble/common/ble_srv_common.c \
     $(NRF5_SDK_ROOT)/components/ble/nrf_ble_gatt/nrf_ble_gatt.c \
