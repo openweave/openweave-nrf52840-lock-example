@@ -1,11 +1,29 @@
+/*
+ *
+ *    Copyright (c) 2019 Google LLC.
+ *    All rights reserved.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
 #include "LockWidget.h"
+
+#include "app_config.h"
 #include "app_timer.h"
 #include "nrf_log.h"
 
+#include "AppTask.h"
 #include "FreeRTOS.h"
-
-
-#define ACTION_ACTIVATION_TIMEOUT_MS    2000
 
 APP_TIMER_DEF(sLockTimer);
 
@@ -13,10 +31,11 @@ int LockWidget::Init()
 {
     ret_code_t ret;
 
-    ret = app_timer_create(&sLockTimer, APP_TIMER_MODE_SINGLE_SHOT, LockTimerEventHandler);
+    ret = app_timer_create(&sLockTimer, APP_TIMER_MODE_SINGLE_SHOT, TimerEventHandler);
     if (ret != NRF_SUCCESS)
     {
         NRF_LOG_INFO("app_timer_create() failed");
+        APP_ERROR_HANDLER(ret);
     }
 
     mState = kState_LockingCompleted;
@@ -69,7 +88,7 @@ bool LockWidget::InitiateAction(int32_t aActor, Action_t aAction)
     if (action_initiated)
     {
         ret_code_t ret;
-        ret = app_timer_start(sLockTimer, pdMS_TO_TICKS(ACTION_ACTIVATION_TIMEOUT_MS), this);
+        ret = app_timer_start(sLockTimer, pdMS_TO_TICKS(ACTUATOR_MOVEMENT_PERIOS_MS), this);
         if (ret != NRF_SUCCESS)
         {
             NRF_LOG_INFO("app_timer_start() failed");
@@ -79,7 +98,6 @@ bool LockWidget::InitiateAction(int32_t aActor, Action_t aAction)
         }
         else
         {
-            NRF_LOG_INFO("Activation In Progress");
             // Since the timer started successfully, update the state and trigger callback
             mState = new_state;
 
@@ -93,10 +111,23 @@ bool LockWidget::InitiateAction(int32_t aActor, Action_t aAction)
     return action_initiated;
 }
 
-void LockWidget::LockTimerEventHandler(void * p_context)
+void LockWidget::TimerEventHandler(void * p_context)
+{
+    // The timer event handler will be called in the context of the timer task
+    // once sLockTimer expires. Post an event to apptask queue with the actual handler
+    // so that the event can be handled in the context of the apptask.
+    AppEvent event;
+    event.Type = AppEvent::kEventType_Timer;
+    event.TimerEvent.Context = p_context;
+    event.Handler = LockTimerEventHandler;
+    GetAppTask().PostEvent(&event);
+}
+
+void LockWidget::LockTimerEventHandler(AppEvent *aEvent)
 {
     Action_t actionCompleted = INVALID_ACTION;
-    LockWidget * lock = static_cast<LockWidget *>(p_context);
+
+    LockWidget * lock = static_cast<LockWidget *>(aEvent->TimerEvent.Context);
 
     if (lock->mState == kState_LockingInitiated)
     {

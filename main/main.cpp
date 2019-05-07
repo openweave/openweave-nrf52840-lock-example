@@ -1,3 +1,21 @@
+/*
+ *
+ *    Copyright (c) 2019 Google LLC.
+ *    All rights reserved.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -46,14 +64,6 @@ using namespace ::nl;
 using namespace ::nl::Inet;
 using namespace ::nl::Weave;
 using namespace ::nl::Weave::DeviceLayer;
-
-
-// ================================================================================
-// Test App Feature Config
-// ================================================================================
-
-#define WOBLE_ENABLED 1
-#define OPENTHREAD_ENABLED 1
 
 // ================================================================================
 // Logging Support
@@ -115,11 +125,7 @@ static void OnSoCEvent(uint32_t sys_evt, void * p_context)
 {
     UNUSED_PARAMETER(p_context);
 
-#if OPENTHREAD_ENABLED
-
     otSysSoftdeviceSocEvtHandler(sys_evt);
-
-#endif // OPENTHREAD_ENABLED
 }
 
 #endif // defined(SOFTDEVICE_PRESENT) && SOFTDEVICE_PRESENT
@@ -189,11 +195,8 @@ int main(void)
 #endif
 
     NRF_LOG_INFO("==================================================");
-    NRF_LOG_INFO("openweave-nrf52840-bringup starting");
+    NRF_LOG_INFO("openweave-nrf52840-lock-example starting");
     NRF_LOG_INFO("==================================================");
-
-    // Configure LED-pins as outputs
-    // bsp_board_init(BSP_INIT_LEDS);
 
 #if defined(SOFTDEVICE_PRESENT) && SOFTDEVICE_PRESENT
 
@@ -248,7 +251,7 @@ int main(void)
         APP_ERROR_CHECK(ret);
     }
 
-#endif // defined(SOFTDEVICE_PRESENT) && SOFTDEVICE_PRESENTvi M
+#endif // defined(SOFTDEVICE_PRESENT) && SOFTDEVICE_PRESENT
 
     NRF_LOG_INFO("Initializing Weave stack");
 
@@ -258,19 +261,6 @@ int main(void)
         NRF_LOG_INFO("PlatformMgr().InitWeaveStack() failed");
         APP_ERROR_HANDLER(ret);
     }
-
-#if !WOBLE_ENABLED
-
-    ret = ConnectivityMgr().SetWoBLEServiceMode(ConnectivityManager::kWoBLEServiceMode_Disabled);
-    if (ret != WEAVE_NO_ERROR)
-    {
-        NRF_LOG_INFO("ConnectivityMgr().SetWoBLEServiceMode() failed");
-        APP_ERROR_HANDLER(ret);
-    }
-
-#endif // WOBLE_ENABLED
-
-#if OPENTHREAD_ENABLED
 
     NRF_LOG_INFO("Initializing OpenThread stack");
 
@@ -283,8 +273,6 @@ int main(void)
         APP_ERROR_HANDLER(ret);
     }
 
-#endif // OPENTHREAD_ENABLED
-
     NRF_LOG_INFO("Starting Weave task");
 
     ret = PlatformMgr().StartEventLoopTask();
@@ -293,8 +281,6 @@ int main(void)
         NRF_LOG_INFO("PlatformMgr().StartEventLoopTask() failed");
         APP_ERROR_HANDLER(ret);
     }
-
-#if OPENTHREAD_ENABLED
 
     NRF_LOG_INFO("Starting OpenThread task");
 
@@ -306,9 +292,7 @@ int main(void)
         APP_ERROR_HANDLER(ret);
     }
 
-#endif // OPENTHREAD_ENABLED
-
-    ret = GetAppTask().Init();
+    ret = GetAppTask().StartAppTask();
     if (ret != NRF_SUCCESS)
     {
         NRF_LOG_INFO("GetAppTask().Init() failed");

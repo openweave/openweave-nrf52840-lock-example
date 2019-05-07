@@ -1,6 +1,6 @@
 /*
  *
- *    Copyright (c) 2018 Nest Labs, Inc.
+ *    Copyright (c) 2019 Google LLC.
  *    All rights reserved.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,8 +21,6 @@
 #include "LEDWidget.h"
 
 #include <Weave/DeviceLayer/WeaveDeviceLayer.h>
-
-extern const char * TAG;
 
 void LEDWidget::Init(uint32_t gpioNum)
 {

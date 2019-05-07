@@ -108,13 +108,9 @@ SRCS = \
 INC_DIRS = \
     $(PROJECT_ROOT) \
     $(PROJECT_ROOT)/main \
+    $(PROJECT_ROOT)/main/include \
     $(PROJECT_ROOT)/main/traits/include \
     $(PROJECT_ROOT)/main/schema/include \
-    $(PROJECT_ROOT)/main/include \
-    $(PROJECT_ROOT)/main/include/app \
-    $(PROJECT_ROOT)/main/include/freertos \
-    $(PROJECT_ROOT)/main/include/openthread \
-    $(PROJECT_ROOT)/main/include/openweace-core \
     $(NRF5_SDK_ROOT)/components \
     $(NRF5_SDK_ROOT)/components/boards \
     $(NRF5_SDK_ROOT)/components/ble/ble_advertising \
@@ -168,9 +164,9 @@ DEFINES = \
     __STACK_SIZE=8192 \
     SOFTDEVICE_PRESENT
 
-OPENWEAVE_PROJECT_CONFIG = $(PROJECT_ROOT)/main/include/openweave-core/WeaveProjectConfig.h
+OPENWEAVE_PROJECT_CONFIG = $(PROJECT_ROOT)/main/include/WeaveProjectConfig.h
 
-OPENTHREAD_PROJECT_CONFIG = $(PROJECT_ROOT)/main/include/openthread/OpenThreadConfig.h
+OPENTHREAD_PROJECT_CONFIG = $(PROJECT_ROOT)/main/include/OpenThreadConfig.h
 
 LINKER_SCRIPT = $(PROJECT_ROOT)/main/ldscripts/openweave-nrf52840-lock-example.ld
 

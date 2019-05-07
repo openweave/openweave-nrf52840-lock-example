@@ -1,8 +1,28 @@
+/*
+ *
+ *    Copyright (c) 2019 Google LLC.
+ *    All rights reserved.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
 #ifndef LOCK_WIDGET_H
 #define LOCK_WIDGET_H
 
 #include <stdint.h>
 #include <stdbool.h>
+
+#include "AppEvent.h"
 
 class LockWidget
 {
@@ -40,8 +60,8 @@ private:
     Callback_fn_initiated mActionInitiated_CB;
     Callback_fn_completed mActionCompleted_CB;
 
-    static void LockTimerEventHandler(void * p_context);
-
+    static void TimerEventHandler(void * p_context);
+    static void LockTimerEventHandler(AppEvent *aEvent);
 };
 
 #endif // LOCK_WIDGET_H

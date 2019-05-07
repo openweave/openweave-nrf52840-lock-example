@@ -1,15 +1,24 @@
 /*
  *
- *    Copyright (c) 2016 Nest Labs, Inc.
+ *    Copyright (c) 2019 Google LLC.
  *    All rights reserved.
  *
- *    This document is the property of Nest. It is considered
- *    confidential and proprietary information.
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
  *
- *    This document may not be reproduced or transmitted in any form,
- *    in whole or in part, without the express written permission of
- *    Nest.
+ *        http://www.apache.org/licenses/LICENSE-2.0
  *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
+/**
+ *    @file
+ *      A trait data sink implementation for the Weave Security BoltLockSettingsTrait.
  *
  */
 
@@ -42,17 +51,14 @@ BoltLockSettingsTraitDataSink::SetLeafData(PropertyPathHandle aLeafHandle, TLVRe
             err = aReader.Get(mAutoRelockOn);
             nlREQUIRE_SUCCESS(err, exit);
 
-            NRF_LOG_INFO("Auto Relock On Setting Value: %d", mAutoRelockOn);
-
-            // Print Auto Relock State
+            NRF_LOG_INFO("Auto Relock %s", (mAutoRelockOn) ? "ENABLED" : "DISABLED");
             break;
 
         case BoltLockSettingsTrait::kPropertyHandle_AutoRelockDuration:
             err = aReader.Get(mAutoLockDurationSecs);
             nlREQUIRE_SUCCESS(err, exit);
 
-            // Print Auto Lock Duration
-            NRF_LOG_INFO("Auto Relock On Duration Setting Value: %d", mAutoLockDurationSecs);
+            NRF_LOG_INFO("Auto Relock On Duration (secs): %u", mAutoLockDurationSecs);
             break;
 
         default:

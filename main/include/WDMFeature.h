@@ -1,6 +1,6 @@
 /*
  *
- *    Copyright (c) 2019 Nest Labs, Inc.
+ *    Copyright (c) 2019 Google LLC.
  *    All rights reserved.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,7 +48,7 @@ private:
 
 class WDMFeature
 {
-	typedef ::nl::Weave::Profiles::DataManagement_Current::SubscriptionClient SubscriptionClient;
+    typedef ::nl::Weave::Profiles::DataManagement_Current::SubscriptionClient SubscriptionClient;
     typedef ::nl::Weave::Profiles::DataManagement_Current::SubscriptionEngine SubscriptionEngine;
     typedef ::nl::Weave::Profiles::DataManagement_Current::SubscriptionHandler SubscriptionHandler;
     typedef ::nl::Weave::Profiles::DataManagement_Current::TraitDataSink TraitDataSink;

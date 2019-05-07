@@ -1,6 +1,6 @@
 /*
  *
- *    Copyright (c) 2018 Nest Labs, Inc.
+ *    Copyright (c) 2019 Google LLC.
  *    All rights reserved.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,12 +34,14 @@ using namespace ::nl::Weave::Profiles::DataManagement_Current;
 #define kServiceEndpoint_Data_Management        0x18B4300200000003ull     ///< Core Weave data management protocol endpoint
 
 /* Defines the timeout for liveness between the service and the device.
+ * For sleepy end node devices, this timeout will be much larger than the current
+ * value to preserve battery.
 */
 #define SERVICE_LIVENESS_TIMEOUT_SEC                60*1 //1 minute
 
 /* Defines the timeout for a response to any message initiated by the device to the service.
 * This includes notifies, subscribe confirms, cancels and updates.
-* This timeout is kept 3 x SERVICE_WRM_RETRANSMISSION_TIMEOUT_MS + some buffer
+* This timeout is kept SERVICE_WRM_MAX_RETRANS x SERVICE_WRM_INITIAL_RETRANS_TIMEOUT_MS + some buffer
 * to account for latency in the message transmission through multiple hops.
 */
 #define SERVICE_MESSAGE_RESPONSE_TIMEOUT_MS         10000

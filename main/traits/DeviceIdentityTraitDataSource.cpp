@@ -1,6 +1,6 @@
 /*
  *
- *    Copyright (c) 2018 Nest Labs, Inc.
+ *    Copyright (c) 2019 Google LLC.
  *    All rights reserved.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,92 +44,92 @@ WEAVE_ERROR DeviceIdentityTraitDataSource::GetLeafData(PropertyPathHandle aLeafH
 
     switch (aLeafHandle)
     {
-    case DeviceIdentityTrait::kPropertyHandle_VendorId:
-    {
-        uint16_t vendorId;
-        err = ConfigurationMgr().GetVendorId(vendorId);
-        SuccessOrExit(err);
-        err = aWriter.Put(aTagToWrite, vendorId);
-        SuccessOrExit(err);
-        break;
-    }
-
-    case DeviceIdentityTrait::kPropertyHandle_VendorProductId:
-    {
-        uint16_t productId;
-        err = ConfigurationMgr().GetProductId(productId);
-        SuccessOrExit(err);
-        err = aWriter.Put(aTagToWrite, productId);
-        SuccessOrExit(err);
-        break;
-    }
-
-    case DeviceIdentityTrait::kPropertyHandle_ProductRevision:
-    {
-        uint16_t productRev;
-        err = ConfigurationMgr().GetProductRevision(productRev);
-        SuccessOrExit(err);
-        err = aWriter.Put(aTagToWrite, productRev);
-        SuccessOrExit(err);
-        break;
-    }
-
-    case DeviceIdentityTrait::kPropertyHandle_SerialNumber:
-    {
-        char serialNum[ConfigurationManager::kMaxSerialNumberLength+1];
-        size_t serialNumLen;
-        err = ConfigurationMgr().GetSerialNumber(serialNum, sizeof(serialNum), serialNumLen);
-        VerifyOrExit(err != WEAVE_DEVICE_ERROR_CONFIG_NOT_FOUND, err = WEAVE_NO_ERROR);
-        SuccessOrExit(err);
-        err = aWriter.PutString(aTagToWrite, serialNum, (uint32_t)serialNumLen);
-        SuccessOrExit(err);
-        break;
-    }
-
-    case DeviceIdentityTrait::kPropertyHandle_SoftwareVersion:
-    {
-        char firmwareRev[ConfigurationManager::kMaxFirmwareRevisionLength+1];
-        size_t firmwareRevLen;
-        err = ConfigurationMgr().GetFirmwareRevision(firmwareRev, sizeof(firmwareRev), firmwareRevLen);
-        VerifyOrExit(err != WEAVE_DEVICE_ERROR_CONFIG_NOT_FOUND, err = WEAVE_NO_ERROR);
-        SuccessOrExit(err);
-        err = aWriter.PutString(aTagToWrite, firmwareRev, (uint32_t)firmwareRevLen);
-        SuccessOrExit(err);
-        break;
-    }
-
-    case DeviceIdentityTrait::kPropertyHandle_ManufacturingDate:
-    {
-        enum {
-            kDateStrLen = 10 // YYYY-MM-DD
-        };
-        char mfgDateStr[kDateStrLen+1];
-        uint16_t year;
-        uint8_t month, dayOfMonth;
-        err = ConfigurationMgr().GetManufacturingDate(year, month, dayOfMonth);
-        VerifyOrExit(err != WEAVE_DEVICE_ERROR_CONFIG_NOT_FOUND, err = WEAVE_NO_ERROR);
-        SuccessOrExit(err);
-        snprintf(mfgDateStr, sizeof(mfgDateStr), "%04" PRIu16 "-%02" PRIu8 "-%02" PRIu8, year, month, dayOfMonth);
-        err = aWriter.PutString(aTagToWrite, mfgDateStr, kDateStrLen);
-        SuccessOrExit(err);
-        break;
-    }
-
-    case DeviceIdentityTrait::kPropertyHandle_DeviceId:
-        err = aWriter.Put(aTagToWrite, ::nl::Weave::DeviceLayer::FabricState.LocalNodeId);
-        SuccessOrExit(err);
-        break;
-
-    case DeviceIdentityTrait::kPropertyHandle_FabricId:
-        if (ConfigurationMgr().IsMemberOfFabric())
+        case DeviceIdentityTrait::kPropertyHandle_VendorId:
         {
-            err = aWriter.Put(aTagToWrite, ::nl::Weave::DeviceLayer::FabricState.FabricId);
+            uint16_t vendorId;
+            err = ConfigurationMgr().GetVendorId(vendorId);
             SuccessOrExit(err);
+            err = aWriter.Put(aTagToWrite, vendorId);
+            SuccessOrExit(err);
+            break;
         }
-        break;
 
-    default:
-        break;
+        case DeviceIdentityTrait::kPropertyHandle_VendorProductId:
+        {
+            uint16_t productId;
+            err = ConfigurationMgr().GetProductId(productId);
+            SuccessOrExit(err);
+            err = aWriter.Put(aTagToWrite, productId);
+            SuccessOrExit(err);
+            break;
+        }
+
+        case DeviceIdentityTrait::kPropertyHandle_ProductRevision:
+        {
+            uint16_t productRev;
+            err = ConfigurationMgr().GetProductRevision(productRev);
+            SuccessOrExit(err);
+            err = aWriter.Put(aTagToWrite, productRev);
+            SuccessOrExit(err);
+            break;
+        }
+
+        case DeviceIdentityTrait::kPropertyHandle_SerialNumber:
+        {
+            char serialNum[ConfigurationManager::kMaxSerialNumberLength+1];
+            size_t serialNumLen;
+            err = ConfigurationMgr().GetSerialNumber(serialNum, sizeof(serialNum), serialNumLen);
+            VerifyOrExit(err != WEAVE_DEVICE_ERROR_CONFIG_NOT_FOUND, err = WEAVE_NO_ERROR);
+            SuccessOrExit(err);
+            err = aWriter.PutString(aTagToWrite, serialNum, (uint32_t)serialNumLen);
+            SuccessOrExit(err);
+            break;
+        }
+
+        case DeviceIdentityTrait::kPropertyHandle_SoftwareVersion:
+        {
+            char firmwareRev[ConfigurationManager::kMaxFirmwareRevisionLength+1];
+            size_t firmwareRevLen;
+            err = ConfigurationMgr().GetFirmwareRevision(firmwareRev, sizeof(firmwareRev), firmwareRevLen);
+            VerifyOrExit(err != WEAVE_DEVICE_ERROR_CONFIG_NOT_FOUND, err = WEAVE_NO_ERROR);
+            SuccessOrExit(err);
+            err = aWriter.PutString(aTagToWrite, firmwareRev, (uint32_t)firmwareRevLen);
+            SuccessOrExit(err);
+            break;
+        }
+
+        case DeviceIdentityTrait::kPropertyHandle_ManufacturingDate:
+        {
+            enum {
+                kDateStrLen = 10 // YYYY-MM-DD
+            };
+            char mfgDateStr[kDateStrLen+1];
+            uint16_t year;
+            uint8_t month, dayOfMonth;
+            err = ConfigurationMgr().GetManufacturingDate(year, month, dayOfMonth);
+            VerifyOrExit(err != WEAVE_DEVICE_ERROR_CONFIG_NOT_FOUND, err = WEAVE_NO_ERROR);
+            SuccessOrExit(err);
+            snprintf(mfgDateStr, sizeof(mfgDateStr), "%04" PRIu16 "-%02" PRIu8 "-%02" PRIu8, year, month, dayOfMonth);
+            err = aWriter.PutString(aTagToWrite, mfgDateStr, kDateStrLen);
+            SuccessOrExit(err);
+            break;
+        }
+
+        case DeviceIdentityTrait::kPropertyHandle_DeviceId:
+            err = aWriter.Put(aTagToWrite, ::nl::Weave::DeviceLayer::FabricState.LocalNodeId);
+            SuccessOrExit(err);
+            break;
+
+        case DeviceIdentityTrait::kPropertyHandle_FabricId:
+            if (ConfigurationMgr().IsMemberOfFabric())
+            {
+                err = aWriter.Put(aTagToWrite, ::nl::Weave::DeviceLayer::FabricState.FabricId);
+                SuccessOrExit(err);
+            }
+            break;
+
+        default:
+            break;
     }
 
 exit:
