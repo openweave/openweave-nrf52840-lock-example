@@ -47,8 +47,8 @@
 #define configCPU_CLOCK_HZ                                                        ( SystemCoreClock )
 #define configTICK_RATE_HZ                                                        1024
 #define configMAX_PRIORITIES                                                      ( 3 )
-#define configMINIMAL_STACK_SIZE                                                  ( 60 )
-#define configTOTAL_HEAP_SIZE                                                     ( 32 * 1024 )
+#define configMINIMAL_STACK_SIZE                                                  ( 100 )
+#define configTOTAL_HEAP_SIZE                                                     ( 64 * 1024 )
 #define configMAX_TASK_NAME_LEN                                                   ( 8 )
 #define configUSE_16_BIT_TICKS                                                    0
 #define configIDLE_SHOULD_YIELD                                                   1
@@ -87,6 +87,8 @@
 
 /* Tickless idle/low power functionality. */
 
+/* */
+#define configSUPPORT_DYNAMIC_ALLOCATION                                          1
 
 /* Debugging support. */
 #define configINCLUDE_FREERTOS_TASK_C_ADDITIONS_H                                 1

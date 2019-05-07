@@ -1,3 +1,21 @@
+/*
+ *
+ *    Copyright (c) 2019 Google LLC.
+ *    All rights reserved.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
 #ifndef APP_CONFIG_H
 #define APP_CONFIG_H
 
@@ -83,7 +101,24 @@
 #define NRF_QUEUE_ENABLED 1
 #define APP_TIMER_ENABLED 1
 #define BUTTON_ENABLED 1
+
 #define GPIOTE_ENABLED 1
+#define GPIOTE_CONFIG_NUM_OF_LOW_POWER_EVENTS 2
+
+#define APP_TIMER_CONFIG_OP_QUEUE_SIZE 10
+
+// ---- Lock Example App Config ----
+
+#define LOCK_BUTTON                             BUTTON_2
+#define FUNCTION_BUTTON                         BUTTON_1
+#define FUNCTION_BUTTON_DEBOUNCE_PERIOD_MS      50
+
+#define SYSTEM_STATE_LED                        BSP_LED_0
+#define LOCK_STATE_LED                          BSP_LED_1
+
+// Time it takes in ms for the simulated actuator to move from one
+// state to another.
+#define ACTUATOR_MOVEMENT_PERIOS_MS	    		2000
 
 #endif //APP_CONFIG_H
 

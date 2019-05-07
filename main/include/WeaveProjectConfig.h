@@ -89,7 +89,7 @@
  * Enables synchronizing the device's real time clock with a remote Weave Time service
  * using the Weave Time Sync protocol.
  */
-#define WEAVE_DEVICE_CONFIG_ENABLE_WEAVE_TIME_SERVICE_TIME_SYNC 0
+#define WEAVE_DEVICE_CONFIG_ENABLE_WEAVE_TIME_SERVICE_TIME_SYNC 1
 
 /**
  * WEAVE_DEVICE_CONFIG_SERVICE_PROVISIONING_CONNECTIVITY_TIMEOUT
@@ -121,5 +121,15 @@
 #define WEAVE_DEVICE_CONFIG_DISABLE_ACCOUNT_PAIRING 0
 
 #define WEAVE_DEVICE_CONFIG_USE_TEST_SERIAL_NUMBER "DUMMY_SN"
+
+/**
+ * WEAVE_DEVICE_CONFIG_ENABLE_TRAIT_MANAGER
+ *
+ * Explicitly disable the trait manager since the application will be taking care of publishing
+ * and subscribing to traits
+ */
+#define WEAVE_DEVICE_CONFIG_ENABLE_TRAIT_MANAGER 0
+
+#define WEAVE_CONFIG_MAX_BINDINGS   8
 
 #endif // WEAVE_PROJECT_CONFIG_H
