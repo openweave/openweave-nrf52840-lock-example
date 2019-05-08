@@ -34,15 +34,14 @@
  *    Implements a data source for the Weave DeviceIdentityTrait.
  *
  */
-class DeviceIdentityTraitDataSource
-    : public ::nl::Weave::Profiles::DataManagement_Current::TraitDataSource
+class DeviceIdentityTraitDataSource : public ::nl::Weave::Profiles::DataManagement_Current::TraitDataSource
 {
 public:
     DeviceIdentityTraitDataSource(void);
 
 private:
     WEAVE_ERROR GetLeafData(::nl::Weave::Profiles::DataManagement_Current::PropertyPathHandle aLeafHandle, uint64_t aTagToWrite,
-                    ::nl::Weave::TLV::TLVWriter & aWriter) override;
+                            ::nl::Weave::TLV::TLVWriter & aWriter) override;
 };
 
 #endif // DEVICE_IDENTITY_TRAIT_DATA_SOURCE_H

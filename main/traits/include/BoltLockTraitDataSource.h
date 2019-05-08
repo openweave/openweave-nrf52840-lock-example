@@ -41,17 +41,12 @@ public:
 
 private:
     WEAVE_ERROR GetLeafData(::nl::Weave::Profiles::DataManagement_Current::PropertyPathHandle aLeafHandle, uint64_t aTagToWrite,
-                    ::nl::Weave::TLV::TLVWriter & aWriter);
+                            ::nl::Weave::TLV::TLVWriter & aWriter);
 
-    void OnCustomCommand(nl::Weave::Profiles::DataManagement::Command * aCommand,
-            const nl::Weave::WeaveMessageInfo * aMsgInfo,
-            nl::Weave::PacketBuffer * aPayload,
-            const uint64_t & aCommandType,
-            const bool aIsExpiryTimeValid,
-            const int64_t & aExpiryTimeMicroSecond,
-            const bool aIsMustBeVersionValid,
-            const uint64_t & aMustBeVersion,
-            nl::Weave::TLV::TLVReader & aArgumentReader);
+    void OnCustomCommand(nl::Weave::Profiles::DataManagement::Command * aCommand, const nl::Weave::WeaveMessageInfo * aMsgInfo,
+                         nl::Weave::PacketBuffer * aPayload, const uint64_t & aCommandType, const bool aIsExpiryTimeValid,
+                         const int64_t & aExpiryTimeMicroSecond, const bool aIsMustBeVersionValid, const uint64_t & aMustBeVersion,
+                         nl::Weave::TLV::TLVReader & aArgumentReader);
 
     int32_t mLockedState;
     int32_t mLockActor;

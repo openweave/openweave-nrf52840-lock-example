@@ -33,33 +33,36 @@ using namespace nl::Weave::Profiles::DataManagement;
 using namespace Schema::Weave::Trait::Security;
 using namespace Schema::Weave::Trait::Security::BoltLockSettingsTrait;
 
-BoltLockSettingsTraitDataSink::BoltLockSettingsTraitDataSink()
-    : TraitDataSink(&BoltLockSettingsTrait::TraitSchema)
+BoltLockSettingsTraitDataSink::BoltLockSettingsTraitDataSink() : TraitDataSink(&BoltLockSettingsTrait::TraitSchema)
 {
-    mAutoRelockOn = false;
+    mAutoRelockOn         = false;
     mAutoLockDurationSecs = 0;
 }
 
 WEAVE_ERROR
-BoltLockSettingsTraitDataSink::SetLeafData(PropertyPathHandle aLeafHandle, TLVReader &aReader)
+BoltLockSettingsTraitDataSink::SetLeafData(PropertyPathHandle aLeafHandle, TLVReader & aReader)
 {
     WEAVE_ERROR err = WEAVE_NO_ERROR;
 
     switch (aLeafHandle)
     {
         case BoltLockSettingsTrait::kPropertyHandle_AutoRelockOn:
+        {
             err = aReader.Get(mAutoRelockOn);
             nlREQUIRE_SUCCESS(err, exit);
 
             NRF_LOG_INFO("Auto Relock %s", (mAutoRelockOn) ? "ENABLED" : "DISABLED");
             break;
+        }
 
         case BoltLockSettingsTrait::kPropertyHandle_AutoRelockDuration:
+        {
             err = aReader.Get(mAutoLockDurationSecs);
             nlREQUIRE_SUCCESS(err, exit);
 
             NRF_LOG_INFO("Auto Relock On Duration (secs): %u", mAutoLockDurationSecs);
             break;
+        }
 
         default:
             break;

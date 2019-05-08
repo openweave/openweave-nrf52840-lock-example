@@ -38,13 +38,12 @@ using namespace nl::Weave::Profiles::DataManagement;
 using namespace Schema::Weave::Trait::Security;
 using namespace Schema::Weave::Trait::Security::BoltLockTrait;
 
-BoltLockTraitDataSource::BoltLockTraitDataSource()
-    : TraitDataSource(&BoltLockTrait::TraitSchema)
+BoltLockTraitDataSource::BoltLockTraitDataSource() : TraitDataSource(&BoltLockTrait::TraitSchema)
 {
-    mLockedState = BOLT_LOCKED_STATE_LOCKED;
-    mLockActor = BOLT_LOCK_ACTOR_METHOD_PHYSICAL;
+    mLockedState   = BOLT_LOCKED_STATE_LOCKED;
+    mLockActor     = BOLT_LOCK_ACTOR_METHOD_PHYSICAL;
     mActuatorState = BOLT_ACTUATOR_STATE_OK;
-    mState = BOLT_STATE_EXTENDED;
+    mState         = BOLT_STATE_EXTENDED;
 }
 
 bool BoltLockTraitDataSource::IsLocked()
@@ -62,9 +61,9 @@ void BoltLockTraitDataSource::InitiateLock(int32_t aLockActor)
 {
     Lock();
 
-    mLockActor = aLockActor;
+    mLockActor     = aLockActor;
     mActuatorState = BOLT_ACTUATOR_STATE_LOCKING;
-    mState = BOLT_STATE_EXTENDED;
+    mState         = BOLT_STATE_EXTENDED;
 
     SetDirty(BoltLockTrait::kPropertyHandle_State);
     SetDirty(BoltLockTrait::kPropertyHandle_BoltLockActor_Method);
@@ -89,9 +88,9 @@ void BoltLockTraitDataSource::InitiateUnlock(int32_t aLockActor)
 {
     Lock();
 
-    mLockActor = aLockActor;
+    mLockActor     = aLockActor;
     mActuatorState = BOLT_ACTUATOR_STATE_UNLOCKING;
-    mLockedState = BOLT_LOCKED_STATE_UNLOCKED;
+    mLockedState   = BOLT_LOCKED_STATE_UNLOCKED;
 
     SetDirty(BoltLockTrait::kPropertyHandle_BoltLockActor_Method);
     SetDirty(BoltLockTrait::kPropertyHandle_ActuatorState);
@@ -118,7 +117,7 @@ void BoltLockTraitDataSource::LockingSuccessful(void)
     Lock();
 
     mActuatorState = BOLT_ACTUATOR_STATE_OK;
-    mLockedState = BOLT_LOCKED_STATE_LOCKED;
+    mLockedState   = BOLT_LOCKED_STATE_LOCKED;
 
     SetDirty(BoltLockTrait::kPropertyHandle_ActuatorState);
     SetDirty(BoltLockTrait::kPropertyHandle_LockedState);
@@ -143,7 +142,7 @@ void BoltLockTraitDataSource::UnlockingSuccessful(void)
 {
     Lock();
 
-    mState = BOLT_STATE_RETRACTED;
+    mState         = BOLT_STATE_RETRACTED;
     mActuatorState = BOLT_ACTUATOR_STATE_OK;
 
     SetDirty(BoltLockTrait::kPropertyHandle_State);
@@ -162,7 +161,6 @@ void BoltLockTraitDataSource::UnlockingSuccessful(void)
     // ev.boltLockActor.SetOriginatorNull();
     // ev.boltLockActor.SetAgentNull();
     // nl::LogEvent(&ev, options);
-
 }
 
 WEAVE_ERROR BoltLockTraitDataSource::GetLeafData(PropertyPathHandle aLeafHandle, uint64_t aTagToWrite, TLVWriter & aWriter)
@@ -216,28 +214,24 @@ exit:
 }
 
 void BoltLockTraitDataSource::OnCustomCommand(nl::Weave::Profiles::DataManagement::Command * aCommand,
-            const nl::Weave::WeaveMessageInfo * aMsgInfo,
-            nl::Weave::PacketBuffer * aPayload,
-            const uint64_t & aCommandType,
-            const bool aIsExpiryTimeValid,
-            const int64_t & aExpiryTimeMicroSecond,
-            const bool aIsMustBeVersionValid,
-            const uint64_t & aMustBeVersion,
-            nl::Weave::TLV::TLVReader & aArgumentReader)
+                                              const nl::Weave::WeaveMessageInfo * aMsgInfo, nl::Weave::PacketBuffer * aPayload,
+                                              const uint64_t & aCommandType, const bool aIsExpiryTimeValid,
+                                              const int64_t & aExpiryTimeMicroSecond, const bool aIsMustBeVersionValid,
+                                              const uint64_t & aMustBeVersion, nl::Weave::TLV::TLVReader & aArgumentReader)
 {
-    WEAVE_ERROR err = WEAVE_NO_ERROR;
-    uint32_t reportProfileId = nl::Weave::Profiles::kWeaveProfile_Common;
+    WEAVE_ERROR err           = WEAVE_NO_ERROR;
+    uint32_t reportProfileId  = nl::Weave::Profiles::kWeaveProfile_Common;
     uint16_t reportStatusCode = nl::Weave::Profiles::Common::kStatus_BadRequest;
 
     /* Commenting out version and expiry time validation for now. This will tackled
-    * later.
-    */
+     * later.
+     */
     if (aIsMustBeVersionValid)
     {
         if (aMustBeVersion != GetVersion())
         {
             NRF_LOG_INFO("Actual version is 0x%X, while must-be version is: 0x%" PRIx64, GetVersion(), aMustBeVersion);
-            reportProfileId = nl::Weave::Profiles::kWeaveProfile_WDM;
+            reportProfileId  = nl::Weave::Profiles::kWeaveProfile_WDM;
             reportStatusCode = kStatus_VersionMismatch;
             goto exit;
         }
@@ -255,7 +249,6 @@ void BoltLockTraitDataSource::OnCustomCommand(nl::Weave::Profiles::DataManagemen
             reportStatusCode = kStatus_NotTimeSyncedYet;
             goto exit;
         }
-        // Handle error other than weave no error
 
         // If we have already passed the commands expiration time,
         // error out
@@ -295,7 +288,7 @@ void BoltLockTraitDataSource::OnCustomCommand(nl::Weave::Profiles::DataManagemen
 
                 case kBoltLockChangeRequestParameter_BoltLockActor:
                 {
-                    WEAVE_ERROR err ;
+                    WEAVE_ERROR err;
                     nl::Weave::TLV::TLVType InnerContainerType;
                     err = aArgumentReader.EnterContainer(InnerContainerType);
                     SuccessOrExit(err);
@@ -350,7 +343,7 @@ void BoltLockTraitDataSource::OnCustomCommand(nl::Weave::Profiles::DataManagemen
         PacketBuffer * msgBuf = PacketBuffer::New();
         if (NULL == msgBuf)
         {
-            reportProfileId = nl::Weave::Profiles::kWeaveProfile_Common;
+            reportProfileId  = nl::Weave::Profiles::kWeaveProfile_Common;
             reportStatusCode = nl::Weave::Profiles::Common::kStatus_OutOfMemory;
             ExitNow(err = WEAVE_ERROR_NO_MEMORY);
         }
@@ -358,7 +351,7 @@ void BoltLockTraitDataSource::OnCustomCommand(nl::Weave::Profiles::DataManagemen
         NRF_LOG_INFO("Sending Success Response to BoltLockChangeRequest Command");
         aCommand->SendResponse(GetVersion(), msgBuf);
         aCommand = NULL;
-        msgBuf = NULL;
+        msgBuf   = NULL;
     }
     else
     {

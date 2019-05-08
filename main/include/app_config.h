@@ -121,4 +121,3 @@
 #define ACTUATOR_MOVEMENT_PERIOS_MS             2000
 
 #endif //APP_CONFIG_H
-

@@ -25,10 +25,10 @@
 void LEDWidget::Init(uint32_t gpioNum)
 {
     mLastChangeTimeUS = 0;
-    mBlinkOnTimeMS = 0;
-    mBlinkOffTimeMS = 0;
-    mGPIONum = gpioNum;
-    mState = false;
+    mBlinkOnTimeMS    = 0;
+    mBlinkOffTimeMS   = 0;
+    mGPIONum          = gpioNum;
+    mState            = false;
 
     nrf_gpio_cfg_output(gpioNum);
     Set(false);
@@ -52,7 +52,7 @@ void LEDWidget::Blink(uint32_t changeRateMS)
 
 void LEDWidget::Blink(uint32_t onTimeMS, uint32_t offTimeMS)
 {
-    mBlinkOnTimeMS = onTimeMS;
+    mBlinkOnTimeMS  = onTimeMS;
     mBlinkOffTimeMS = offTimeMS;
     Animate();
 }
@@ -61,8 +61,8 @@ void LEDWidget::Animate()
 {
     if (mBlinkOnTimeMS != 0 && mBlinkOffTimeMS != 0)
     {
-        int64_t nowUS = ::nl::Weave::System::Platform::Layer::GetClock_MonotonicHiRes();
-        int64_t stateDurUS = ((mState) ? mBlinkOnTimeMS : mBlinkOffTimeMS) * 1000LL;
+        int64_t nowUS            = ::nl::Weave::System::Platform::Layer::GetClock_MonotonicHiRes();
+        int64_t stateDurUS       = ((mState) ? mBlinkOnTimeMS : mBlinkOffTimeMS) * 1000LL;
         int64_t nextChangeTimeUS = mLastChangeTimeUS + stateDurUS;
 
         if (nowUS > nextChangeTimeUS)
@@ -86,4 +86,3 @@ void LEDWidget::DoSet(bool state)
         nrf_gpio_pin_write(mGPIONum, LEDS_ACTIVE_STATE ? 0 : 1);
     }
 }
-
