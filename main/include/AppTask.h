@@ -23,7 +23,7 @@
 #include <stdbool.h>
 
 #include "AppEvent.h"
-#include "LockWidget.h"
+#include "BoltLockManager.h"
 
 #include <Weave/DeviceLayer/WeaveDeviceLayer.h>
 
@@ -33,7 +33,7 @@ public:
     int StartAppTask();
     static void AppTaskMain(void * pvParameter);
 
-    void PostLockActionRequest(int32_t aActor, LockWidget::Action_t aAction);
+    void PostLockActionRequest(int32_t aActor, BoltLockManager::Action_t aAction);
     void PostEvent(const AppEvent * event);
 
 private:
@@ -41,8 +41,8 @@ private:
 
     int Init();
 
-    static void ActionInitiated(LockWidget::Action_t aAction, int32_t aActor);
-    static void ActionCompleted(LockWidget::Action_t aAction);
+    static void ActionInitiated(BoltLockManager::Action_t aAction, int32_t aActor);
+    static void ActionCompleted(BoltLockManager::Action_t aAction);
 
     void CancelTimer(void);
 

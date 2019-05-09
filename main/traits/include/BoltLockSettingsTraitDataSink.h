@@ -35,9 +35,6 @@ public:
 private:
     WEAVE_ERROR SetLeafData(nl::Weave::Profiles::DataManagement::PropertyPathHandle aLeafHandle,
                             nl::Weave::TLV::TLVReader & aReader);
-
-    bool mAutoRelockOn;
-    uint32_t mAutoLockDurationSecs;
 };
 
 #endif /* BOLT_LOCK_SETTINGS_TRAIT_DATA_SINK_H */

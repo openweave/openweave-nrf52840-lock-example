@@ -50,8 +50,6 @@ static LEDWidget sLockLED;
 static LEDWidget sUnusedLED;
 static LEDWidget sUnusedLED_1;
 
-static LockWidget sLock;
-
 static bool sIsThreadProvisioned              = false;
 static bool sIsThreadEnabled                  = false;
 static bool sIsThreadAttached                 = false;
@@ -92,7 +90,7 @@ int AppTask::Init()
     sStatusLED.Init(SYSTEM_STATE_LED);
 
     sLockLED.Init(LOCK_STATE_LED);
-    sLockLED.Set(!sLock.IsUnlocked());
+    sLockLED.Set(!BoltLockMgr().IsUnlocked());
 
     sUnusedLED.Init(BSP_LED_2);
     sUnusedLED_1.Init(BSP_LED_3);
@@ -132,15 +130,14 @@ int AppTask::Init()
         APP_ERROR_HANDLER(ret);
     }
 
-    // Intitialize lock
-    ret = sLock.Init();
+    ret = BoltLockMgr().Init();
     if (ret != NRF_SUCCESS)
     {
-        NRF_LOG_INFO("sLock.Init() failed");
+        NRF_LOG_INFO("BoltLockMgr().Init() failed");
         APP_ERROR_HANDLER(ret);
     }
 
-    sLock.SetCallbacks(ActionInitiated, ActionCompleted);
+    BoltLockMgr().SetCallbacks(ActionInitiated, ActionCompleted);
 
     // Inititalize WDM Feature
     ret = WdmFeature().Init();
@@ -236,24 +233,24 @@ void AppTask::AppTaskMain(void * pvParameter)
 void AppTask::LockActionEventHandler(AppEvent * aEvent)
 {
     bool initiated = false;
-    LockWidget::Action_t action;
+    BoltLockManager::Action_t action;
     int32_t actor;
     ret_code_t ret = NRF_SUCCESS;
 
     if (aEvent->Type == AppEvent::kEventType_Lock)
     {
-        action = static_cast<LockWidget::Action_t>(aEvent->LockEvent.Action);
+        action = static_cast<BoltLockManager::Action_t>(aEvent->LockEvent.Action);
         actor  = aEvent->LockEvent.Actor;
     }
     else if (aEvent->Type == AppEvent::kEventType_Button)
     {
-        if (sLock.IsUnlocked())
+        if (BoltLockMgr().IsUnlocked())
         {
-            action = LockWidget::LOCK_ACTION;
+            action = BoltLockManager::LOCK_ACTION;
         }
         else
         {
-            action = LockWidget::UNLOCK_ACTION;
+            action = BoltLockManager::UNLOCK_ACTION;
         }
 
         actor = Schema::Weave::Trait::Security::BoltLockTrait::BOLT_LOCK_ACTOR_METHOD_PHYSICAL;
@@ -265,7 +262,7 @@ void AppTask::LockActionEventHandler(AppEvent * aEvent)
 
     if (ret == NRF_SUCCESS)
     {
-        initiated = sLock.InitiateAction(actor, action);
+        initiated = BoltLockMgr().InitiateAction(actor, action);
 
         if (!initiated)
         {
@@ -374,7 +371,7 @@ void AppTask::FunctionHandler(AppEvent * aEvent)
             sUnusedLED_1.Set(false);
 
             // Set lock status LED back to show state of lock.
-            sLockLED.Set(!sLock.IsUnlocked());
+            sLockLED.Set(!BoltLockMgr().IsUnlocked());
 
             sAppTask.CancelTimer();
 
@@ -414,16 +411,16 @@ void AppTask::StartTimer(uint32_t aTimeoutInMs)
     mFunctionTimerActive = true;
 }
 
-void AppTask::ActionInitiated(LockWidget::Action_t aAction, int32_t aActor)
+void AppTask::ActionInitiated(BoltLockManager::Action_t aAction, int32_t aActor)
 {
     // If the action has been initiated by the lock, update the bolt lock trait
     // and start flashing the LEDs rapidly to indicate action initiation.
-    if (aAction == LockWidget::LOCK_ACTION)
+    if (aAction == BoltLockManager::LOCK_ACTION)
     {
         WdmFeature().GetBoltLockTraitDataSource().InitiateLock(aActor);
         NRF_LOG_INFO("Lock Action has been initiated")
     }
-    else if (aAction == LockWidget::UNLOCK_ACTION)
+    else if (aAction == BoltLockManager::UNLOCK_ACTION)
     {
         WdmFeature().GetBoltLockTraitDataSource().InitiateUnlock(aActor);
         NRF_LOG_INFO("Unlock Action has been initiated")
@@ -432,12 +429,12 @@ void AppTask::ActionInitiated(LockWidget::Action_t aAction, int32_t aActor)
     sLockLED.Blink(50, 50);
 }
 
-void AppTask::ActionCompleted(LockWidget::Action_t aAction)
+void AppTask::ActionCompleted(BoltLockManager::Action_t aAction)
 {
     // if the action has been completed by the lock, update the bolt lock trait.
     // Turn on the lock LED if in a LOCKED state OR
     // Turn off the lock LED if in an UNLOCKED state.
-    if (aAction == LockWidget::LOCK_ACTION)
+    if (aAction == BoltLockManager::LOCK_ACTION)
     {
         NRF_LOG_INFO("Lock Action has been completed")
 
@@ -445,7 +442,7 @@ void AppTask::ActionCompleted(LockWidget::Action_t aAction)
 
         sLockLED.Set(true);
     }
-    else if (aAction == LockWidget::UNLOCK_ACTION)
+    else if (aAction == BoltLockManager::UNLOCK_ACTION)
     {
         NRF_LOG_INFO("Unlock Action has been completed")
 
@@ -455,7 +452,7 @@ void AppTask::ActionCompleted(LockWidget::Action_t aAction)
     }
 }
 
-void AppTask::PostLockActionRequest(int32_t aActor, LockWidget::Action_t aAction)
+void AppTask::PostLockActionRequest(int32_t aActor, BoltLockManager::Action_t aAction)
 {
     AppEvent event;
     event.Type             = AppEvent::kEventType_Lock;
