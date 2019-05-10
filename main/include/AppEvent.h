@@ -20,38 +20,38 @@
 #define APP_EVENT_H
 
 struct AppEvent;
-typedef void (*EventHandler)(AppEvent*);
+typedef void (*EventHandler)(AppEvent *);
 
 struct AppEvent
 {
-	enum AppEventTypes
-	{
-		kEventType_Button = 0,
-		kEventType_Timer,
-		kEventType_Lock,
-	};
+    enum AppEventTypes
+    {
+        kEventType_Button = 0,
+        kEventType_Timer,
+        kEventType_Lock,
+    };
 
-	uint16_t Type;
+    uint16_t Type;
 
-	union
-	{
-		struct
-		{
-			uint8_t PinNo;
-			uint8_t Action;
-		} ButtonEvent;
-		struct
-		{
-			void * Context;
-		} TimerEvent;
-		struct
-		{
-			uint8_t Action;
-			int32_t Actor;
-		} LockEvent;
-	};
+    union
+    {
+        struct
+        {
+            uint8_t PinNo;
+            uint8_t Action;
+        } ButtonEvent;
+        struct
+        {
+            void * Context;
+        } TimerEvent;
+        struct
+        {
+            uint8_t Action;
+            int32_t Actor;
+        } LockEvent;
+    };
 
-	EventHandler Handler;
+    EventHandler Handler;
 };
 
 #endif // APP_EVENT_H

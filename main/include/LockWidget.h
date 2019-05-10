@@ -27,15 +27,16 @@
 class LockWidget
 {
 public:
-
-    enum Action_t {
+    enum Action_t
+    {
         LOCK_ACTION = 0,
         UNLOCK_ACTION,
 
         INVALID_ACTION
-    }Action;
+    } Action;
 
-    enum State_t {
+    enum State_t
+    {
         kState_LockingInitiated = 0,
         kState_LockingCompleted,
         kState_UnlockingInitiated,
@@ -50,18 +51,16 @@ public:
 
     typedef void (*Callback_fn_initiated)(Action_t, int32_t aActor);
     typedef void (*Callback_fn_completed)(Action_t);
-    void SetCallbacks(Callback_fn_initiated aActionInitiated_CB,
-                      Callback_fn_completed aActionCompleted_CB);
+    void SetCallbacks(Callback_fn_initiated aActionInitiated_CB, Callback_fn_completed aActionCompleted_CB);
 
 private:
-
     State_t mState;
 
     Callback_fn_initiated mActionInitiated_CB;
     Callback_fn_completed mActionCompleted_CB;
 
     static void TimerEventHandler(void * p_context);
-    static void LockTimerEventHandler(AppEvent *aEvent);
+    static void LockTimerEventHandler(AppEvent * aEvent);
 };
 
 #endif // LOCK_WIDGET_H

@@ -43,8 +43,7 @@ int LockWidget::Init()
     return ret;
 }
 
-void LockWidget::SetCallbacks(Callback_fn_initiated aActionInitiated_CB,
-                              Callback_fn_completed aActionCompleted_CB)
+void LockWidget::SetCallbacks(Callback_fn_initiated aActionInitiated_CB, Callback_fn_completed aActionCompleted_CB)
 {
     mActionInitiated_CB = aActionInitiated_CB;
     mActionCompleted_CB = aActionCompleted_CB;
@@ -57,8 +56,7 @@ LockWidget::State_t LockWidget::GetState()
 
 bool LockWidget::IsActionInProgress()
 {
-    return (mState == kState_LockingInitiated || mState == kState_UnlockingInitiated) ?
-        true : false;
+    return (mState == kState_LockingInitiated || mState == kState_UnlockingInitiated) ? true : false;
 }
 
 bool LockWidget::IsUnlocked()
@@ -117,13 +115,13 @@ void LockWidget::TimerEventHandler(void * p_context)
     // once sLockTimer expires. Post an event to apptask queue with the actual handler
     // so that the event can be handled in the context of the apptask.
     AppEvent event;
-    event.Type = AppEvent::kEventType_Timer;
+    event.Type               = AppEvent::kEventType_Timer;
     event.TimerEvent.Context = p_context;
-    event.Handler = LockTimerEventHandler;
+    event.Handler            = LockTimerEventHandler;
     GetAppTask().PostEvent(&event);
 }
 
-void LockWidget::LockTimerEventHandler(AppEvent *aEvent)
+void LockWidget::LockTimerEventHandler(AppEvent * aEvent)
 {
     Action_t actionCompleted = INVALID_ACTION;
 
@@ -131,12 +129,12 @@ void LockWidget::LockTimerEventHandler(AppEvent *aEvent)
 
     if (lock->mState == kState_LockingInitiated)
     {
-        lock->mState = kState_LockingCompleted;
+        lock->mState    = kState_LockingCompleted;
         actionCompleted = LOCK_ACTION;
     }
     else if (lock->mState == kState_UnlockingInitiated)
     {
-        lock->mState = kState_UnlockingCompleted;
+        lock->mState    = kState_UnlockingCompleted;
         actionCompleted = UNLOCK_ACTION;
     }
 

@@ -112,8 +112,7 @@ void OnLogOutput(void)
 } // namespace Weave
 } // namespace nl
 
-#endif //NRF_LOG_ENABLED
-
+#endif // NRF_LOG_ENABLED
 
 // ================================================================================
 // SoftDevice Support
@@ -129,7 +128,6 @@ static void OnSoCEvent(uint32_t sys_evt, void * p_context)
 }
 
 #endif // defined(SOFTDEVICE_PRESENT) && SOFTDEVICE_PRESENT
-
 
 // ================================================================================
 // J-Link Monitor Mode Debugging Support
@@ -153,8 +151,6 @@ extern "C" void JLINK_MONITOR_OnPoll(void)
 }
 
 #endif // JLINK_MMD
-
-
 
 // ================================================================================
 // Main Code

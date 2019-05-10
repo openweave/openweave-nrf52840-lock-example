@@ -43,7 +43,6 @@ public:
 
 private:
     SemaphoreHandle_t mRecursiveLock;
-
 };
 
 class WDMFeature
@@ -58,29 +57,30 @@ class WDMFeature
     typedef ::nl::Weave::Profiles::DataManagement_Current::PropertyPathHandle PropertyPathHandle;
 
 public:
-    WDMFeature();
+    WDMFeature(void);
     WEAVE_ERROR Init(void);
     void ProcessTraitChanges(void);
     void TearDownSubscriptions(void);
 
     bool AreServiceSubscriptionsEstablished(void);
 
-    BoltLockTraitDataSource& GetBoltLockTraitDataSource(void);
+    BoltLockTraitDataSource & GetBoltLockTraitDataSource(void);
 
     nl::Weave::Profiles::DataManagement::SubscriptionEngine mSubscriptionEngine;
 
 private:
-
     friend WDMFeature & WdmFeature(void);
 
-    enum SourceTraitHandle {
+    enum SourceTraitHandle
+    {
         kSourceHandle_BoltLockTrait = 0,
         kSourceHandle_DeviceIdentityTrait,
 
         kSourceHandle_Max
     };
 
-    enum SinkTraitHandle {
+    enum SinkTraitHandle
+    {
         kSinkHandle_BoltLockSettingsTrait = 0,
 
         kSinkHandle_Max
@@ -98,13 +98,17 @@ private:
 
     static void PlatformEventHandler(const ::nl::Weave::DeviceLayer::WeaveDeviceEvent * event, intptr_t arg);
     static void HandleSubscriptionEngineEvent(void * appState, SubscriptionEngine::EventID eventType,
-            const SubscriptionEngine::InEventParam & inParam, SubscriptionEngine::OutEventParam & outParam);
+                                              const SubscriptionEngine::InEventParam & inParam,
+                                              SubscriptionEngine::OutEventParam & outParam);
     static void HandleServiceBindingEvent(void * appState, ::nl::Weave::Binding::EventType eventType,
-        const ::nl::Weave::Binding::InEventParam & inParam, ::nl::Weave::Binding::OutEventParam & outParam);
+                                          const ::nl::Weave::Binding::InEventParam & inParam,
+                                          ::nl::Weave::Binding::OutEventParam & outParam);
     static void HandleOutboundServiceSubscriptionEvent(void * appState, SubscriptionClient::EventID eventType,
-            const SubscriptionClient::InEventParam & inParam, SubscriptionClient::OutEventParam & outParam);
+                                                       const SubscriptionClient::InEventParam & inParam,
+                                                       SubscriptionClient::OutEventParam & outParam);
     static void HandleInboundSubscriptionEvent(void * aAppState, SubscriptionHandler::EventID eventType,
-            const SubscriptionHandler::InEventParam & inParam, SubscriptionHandler::OutEventParam & outParam);
+                                               const SubscriptionHandler::InEventParam & inParam,
+                                               SubscriptionHandler::OutEventParam & outParam);
 
     // Sink Catalog
     nl::Weave::Profiles::DataManagement::SingleResourceSinkTraitCatalog::CatalogItem mServiceSinkCatalogStore[kSinkHandle_Max];
@@ -112,18 +116,19 @@ private:
 
     // Source Catalog
     nl::Weave::Profiles::DataManagement::SingleResourceSourceTraitCatalog mServiceSourceTraitCatalog;
-    nl::Weave::Profiles::DataManagement::SingleResourceSourceTraitCatalog::CatalogItem mServiceSourceCatalogStore[kSourceHandle_Max];
+    nl::Weave::Profiles::DataManagement::SingleResourceSourceTraitCatalog::CatalogItem
+        mServiceSourceCatalogStore[kSourceHandle_Max];
 
     nl::Weave::Profiles::DataManagement::TraitPath mServiceSinkTraitPaths[kSinkHandle_Max];
 
     // Subscription Clients
-    nl::Weave::Profiles::DataManagement::SubscriptionClient* mServiceSubClient;
+    nl::Weave::Profiles::DataManagement::SubscriptionClient * mServiceSubClient;
 
     // Subscription Handler
-    nl::Weave::Profiles::DataManagement::SubscriptionHandler *mServiceCounterSubHandler;
+    nl::Weave::Profiles::DataManagement::SubscriptionHandler * mServiceCounterSubHandler;
 
     // Binding
-    nl::Weave::Binding* mServiceSubBinding;
+    nl::Weave::Binding * mServiceSubBinding;
 
     static WDMFeature sWDMfeature;
     PublisherLock mPublisherLock;
@@ -138,7 +143,7 @@ inline WDMFeature & WdmFeature(void)
     return WDMFeature::sWDMfeature;
 }
 
-inline BoltLockTraitDataSource& WDMFeature::GetBoltLockTraitDataSource(void)
+inline BoltLockTraitDataSource & WDMFeature::GetBoltLockTraitDataSource(void)
 {
     return mBoltLockTraitSource;
 }

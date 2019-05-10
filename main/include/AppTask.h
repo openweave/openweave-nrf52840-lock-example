@@ -34,10 +34,9 @@ public:
     static void AppTaskMain(void * pvParameter);
 
     void PostLockActionRequest(int32_t aActor, LockWidget::Action_t aAction);
-    void PostEvent(const AppEvent *event);
+    void PostEvent(const AppEvent * event);
 
 private:
-
     friend AppTask & GetAppTask(void);
 
     int Init();
@@ -47,19 +46,20 @@ private:
 
     void CancelTimer(void);
 
-    void DispatchEvent(AppEvent *event);
+    void DispatchEvent(AppEvent * event);
 
-    static void FunctionTimerEventHandler(AppEvent *aEvent);
-    static void FunctionHandler(AppEvent *aEvent);
-    static void LockActionEventHandler(AppEvent *aEvent);
+    static void FunctionTimerEventHandler(AppEvent * aEvent);
+    static void FunctionHandler(AppEvent * aEvent);
+    static void LockActionEventHandler(AppEvent * aEvent);
 
     static void ButtonEventHandler(uint8_t pin_no, uint8_t button_action);
     static void TimerEventHandler(void * p_context);
 
     void StartTimer(uint32_t aTimeoutInMs);
 
-    enum Function_t {
-        kFunction_NoneSelected = 0,
+    enum Function_t
+    {
+        kFunction_NoneSelected   = 0,
         kFunction_SoftwareUpdate = 0,
         kFunction_FactoryReset,
 

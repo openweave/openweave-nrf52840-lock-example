@@ -33,7 +33,8 @@ public:
     BoltLockSettingsTraitDataSink();
 
 private:
-    WEAVE_ERROR SetLeafData(nl::Weave::Profiles::DataManagement::PropertyPathHandle aLeafHandle, nl::Weave::TLV::TLVReader &aReader);
+    WEAVE_ERROR SetLeafData(nl::Weave::Profiles::DataManagement::PropertyPathHandle aLeafHandle,
+                            nl::Weave::TLV::TLVReader & aReader);
 
     bool mAutoRelockOn;
     uint32_t mAutoLockDurationSecs;
