@@ -7,8 +7,9 @@ An example application showing the use OpenWeave on the Nordic nRF52840.
 <hr>
 
 * [Introduction](#intro)
-* [Application Behavior](#app-behavior)
-* [Application UI](#app-ui)
+* [Software Architecture](#software-architecture)
+* [Example Application Design](#example-app-design)
+* [Device UI](#device-ui)
 * [Building](#building)
 * [Initializing the nRF52840 DK](#initializing)
 * [Flashing the Application](#flashing)
@@ -21,13 +22,15 @@ An example application showing the use OpenWeave on the Nordic nRF52840.
 
 ## Introduction
 
+![nrf52840 DK](doc/images/nrf52840-dk.jpg)
+
 The nRF52840 lock example application provides a working demonstration of a connected door lock device, built using OpenWeave, OpenThread and the Nordic
 nRF5 SDK. The example supports remote access and control of a simulated door lock over a low-power, 802.15.4 Thread network.  It is capable of being paired into
 an existing Weave network along with other Weave-enabled devices, and supports communication (via a Weave border router device) with the Nest service.    The
 example targets the [Nordic nRF52840 DK](https://www.nordicsemi.com/Software-and-Tools/Development-Kits/nRF52840-DK) development kit, but is readily 
-adaptable to other hardware. 
+adaptable to other nRF52840-based hardware. 
 
-The nRF52840 lock example is intended to serve both as a means to explore the workings of OpenWeave and OpenThread, as well as a template for creating real
+The lock example is intended to serve both as a means to explore the workings of OpenWeave and OpenThread, as well as a template for creating real
 products based on the Nordic platform. 
 
 The example application builds upon the [OpenWeave](https://github.com/openweave/openweave-core/) and [OpenThread](https://github.com/openthread/openthread)
@@ -35,9 +38,40 @@ projects, which are incorporated as submodules and built from source.  A top-lev
 OpenThread and select files from the nRF5 SDK.  The resultant image file  can be flashed directly onto the Nordic dev kit hardware.
 
 
-<a name="app-behavior"></a>
+<a name="software-architecture"></a>
 
-## Application Behavior
+## Software Architecture
+
+
+![nrf52840 Lock Example Architecture](doc/images/nrf52840-lock-example-architecture.svg)
+
+ The lock example is built on the Weave application layer framework provided by [openweave-core](https://github.com/openweave/openweave-core/) . 
+ At the heart of this are the **Weave Core** components.  These components provide the essential functionality required to speak Weave.
+ This includes code for encoding and decoding Weave messages, communicating Weave messages over various transports (TCP, UDP, BLE), tracking
+ Weave conversations (exchanges) and negotiating secure communications.
+
+The **Weave Profiles** sit atop the core components and provide support for specific types of Weave interactions.  Central among these is the Weave Data
+Management profile (**WDM**), which provides a generalized protocol for communicating state, configuration settings, commands and events between Weave
+nodes.  Other profiles support device provisioning (pairing), OTA software update, time synchronization, and device identification and control.
+
+The **Weave Device Layer** serves to adapt the portable Weave Core and Profile components to run in the context of a particular device platform.  In the case
+of the lock example, the device platform is the nR52840.  Additionally, the Device Layer also provides platform-neutral
+services (APIs) to the application for performing certain fundamental operations that are common to all Weave devices.  These include managing a device’s
+persistent configuration, managing its network connectivity, scheduling and orchestrating OTA software updates and others.
+
+The lock example makes use of various components provided by the **Nordic nRF52 SDK**, including BLE support libraries, persistent storage management,
+crypto services, logging and others.  Nordic’s adaptation of **FreeRTOS** is used to support multi-threading and task synchronization.   **SEGGER RTT** support
+provides access to log output using the J-Jink debug probe built in to the nRF52840 Dev Kit.  
+
+**OpenThread** provides the core Thread stack implementation and manages persistent storage of Thread network configuration.  The **LwIP** Lightweight IP
+stack provides IP services on top of Thread, including TCP, UDP and ICMPv6.
+
+The **Nordic S140 SoftDevice** provides a BLE compatible protocol stack and well as multiprotocol radio support for simultaneous use of BLE and Thread.
+
+
+<a name="example-app-design"></a>
+
+## Example Application Design
 
 The lock example application uses the Weave Data Management protocol (WDM) to enable remote access to state and control of a simulated door lock.  The
 application implements the standard Nest-defined schema for a consumer-grade bolt lock.  In particular, the application publishes the `security.BoltLockTrait`, which
@@ -60,9 +94,9 @@ Weave Data Management protocol; namely:
 - Emitting events
 
 
-<a name="app-ui"></a>
+<a name="device-ui"></a>
 
-## Application UI
+## Device UI
 
 The example application provides a simple UI that depicts the state of the device and offers basic user control.  This UI is implemented via the general-purpose
 LEDs and buttons built in to the nRF52840 DK dev board.
