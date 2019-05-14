@@ -26,7 +26,7 @@
 #include <schema/include/BoltLockTrait.h>
 #include "nrf_log.h"
 #include <WDMFeature.h>
-#include <LockWidget.h>
+#include <BoltLockManager.h>
 #include <AppTask.h>
 
 #include <Weave/DeviceLayer/WeaveDeviceLayer.h>
@@ -319,11 +319,11 @@ void BoltLockTraitDataSource::OnCustomCommand(nl::Weave::Profiles::DataManagemen
 
         if (changeRequestParam_State == BOLT_STATE_RETRACTED)
         {
-            GetAppTask().PostLockActionRequest(changeRequestParam_Actor, LockWidget::UNLOCK_ACTION);
+            GetAppTask().PostLockActionRequest(changeRequestParam_Actor, BoltLockManager::UNLOCK_ACTION);
         }
         else if (changeRequestParam_State == BOLT_STATE_EXTENDED)
         {
-            GetAppTask().PostLockActionRequest(changeRequestParam_Actor, LockWidget::LOCK_ACTION);
+            GetAppTask().PostLockActionRequest(changeRequestParam_Actor, BoltLockManager::LOCK_ACTION);
         }
         else
         {

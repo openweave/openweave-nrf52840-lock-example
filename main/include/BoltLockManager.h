@@ -16,15 +16,15 @@
  *    limitations under the License.
  */
 
-#ifndef LOCK_WIDGET_H
-#define LOCK_WIDGET_H
+#ifndef LOCK_MANAGER_H
+#define LOCK_MANAGER_H
 
 #include <stdint.h>
 #include <stdbool.h>
 
 #include "AppEvent.h"
 
-class LockWidget
+class BoltLockManager
 {
 public:
     enum Action_t
@@ -44,9 +44,10 @@ public:
     } State;
 
     int Init();
-    State_t GetState();
-    bool IsActionInProgress();
     bool IsUnlocked();
+    void EnableAutoRelock(bool aOn);
+    void SetAutoLockDuration(uint32_t aDurationInSecs);
+    bool IsActionInProgress();
     bool InitiateAction(int32_t aActor, Action_t aAction);
 
     typedef void (*Callback_fn_initiated)(Action_t, int32_t aActor);
@@ -54,13 +55,29 @@ public:
     void SetCallbacks(Callback_fn_initiated aActionInitiated_CB, Callback_fn_completed aActionCompleted_CB);
 
 private:
+    friend BoltLockManager & BoltLockMgr(void);
     State_t mState;
 
     Callback_fn_initiated mActionInitiated_CB;
     Callback_fn_completed mActionCompleted_CB;
 
+    bool mAutoRelock;
+    uint32_t mAutoLockDuration;
+    bool mAutoLockTimerArmed;
+
+    void CancelTimer(void);
+    void StartTimer(uint32_t aTimeoutMs);
+
     static void TimerEventHandler(void * p_context);
-    static void LockTimerEventHandler(AppEvent * aEvent);
+    static void AutoReLockTimerEventHandler(AppEvent * aEvent);
+    static void ActuatorMovementTimerEventHandler(AppEvent *aEvent);
+
+    static BoltLockManager sLock;
 };
 
-#endif // LOCK_WIDGET_H
+inline BoltLockManager & BoltLockMgr(void)
+{
+    return BoltLockManager::sLock;
+}
+
+#endif // LOCK_MANAGER_H

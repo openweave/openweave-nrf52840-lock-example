@@ -37,7 +37,7 @@ SRCS = \
     $(PROJECT_ROOT)/main/main.cpp \
     $(PROJECT_ROOT)/main/AppTask.cpp \
     $(PROJECT_ROOT)/main/LEDWidget.cpp \
-    $(PROJECT_ROOT)/main/LockWidget.cpp \
+    $(PROJECT_ROOT)/main/BoltLockManager.cpp \
     $(PROJECT_ROOT)/main/WDMFeature.cpp \
     $(PROJECT_ROOT)/main/traits/BoltLockTraitDataSource.cpp \
     $(PROJECT_ROOT)/main/traits/BoltLockSettingsTraitDataSink.cpp \

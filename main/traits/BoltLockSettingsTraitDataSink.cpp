@@ -27,16 +27,18 @@
 
 #include "nrf_log.h"
 
+#include "BoltLockManager.h"
+#include "WDMFeature.h"
+
 using namespace nl::Weave::TLV;
 using namespace nl::Weave::Profiles::DataManagement;
 
 using namespace Schema::Weave::Trait::Security;
 using namespace Schema::Weave::Trait::Security::BoltLockSettingsTrait;
 
-BoltLockSettingsTraitDataSink::BoltLockSettingsTraitDataSink() : TraitDataSink(&BoltLockSettingsTrait::TraitSchema)
+BoltLockSettingsTraitDataSink::BoltLockSettingsTraitDataSink()
+    : TraitDataSink(&BoltLockSettingsTrait::TraitSchema)
 {
-    mAutoRelockOn         = false;
-    mAutoLockDurationSecs = 0;
 }
 
 WEAVE_ERROR
@@ -48,19 +50,25 @@ BoltLockSettingsTraitDataSink::SetLeafData(PropertyPathHandle aLeafHandle, TLVRe
     {
         case BoltLockSettingsTrait::kPropertyHandle_AutoRelockOn:
         {
-            err = aReader.Get(mAutoRelockOn);
+            bool auto_relock_on;
+            err = aReader.Get(auto_relock_on);
             nlREQUIRE_SUCCESS(err, exit);
 
-            NRF_LOG_INFO("Auto Relock %s", (mAutoRelockOn) ? "ENABLED" : "DISABLED");
+            BoltLockMgr().EnableAutoRelock(auto_relock_on);
+
+            NRF_LOG_INFO("Auto Relock %s", (auto_relock_on) ? "ENABLED" : "DISABLED");
             break;
         }
 
         case BoltLockSettingsTrait::kPropertyHandle_AutoRelockDuration:
         {
-            err = aReader.Get(mAutoLockDurationSecs);
+            uint32_t auto_lock_duration = 0;
+            err = aReader.Get(auto_lock_duration);
             nlREQUIRE_SUCCESS(err, exit);
 
-            NRF_LOG_INFO("Auto Relock On Duration (secs): %u", mAutoLockDurationSecs);
+            BoltLockMgr().SetAutoLockDuration(auto_lock_duration);
+
+            NRF_LOG_INFO("Auto Relock Duration (secs): %u", auto_lock_duration);
             break;
         }
 
