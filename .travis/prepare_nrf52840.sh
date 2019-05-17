@@ -24,7 +24,7 @@
 # Set tools download links
 #
 
-NORDIC_SDK_FOR_THREAD_URL=https://www.nordicsemi.com/-/media/Software-and-other-downloads/SDKs/nRF5-SDK-for-Thread/nRF5-SDK-for-Thread-and-Zigbee/nRF5SDKforThreadandZigbee20029775ac.zip
+NORDIC_SDK_FOR_THREAD_URL=https://www.nordicsemi.com/-/media/Software-and-other-downloads/SDKs/nRF5-SDK-for-Thread/nRF5-SDK-for-Thread-and-Zigbee/nRF5SDKforThreadandZigbeev300d310e71.zip
 
 NORDIC_COMMAND_LINE_TOOLS_URL=https://www.nordicsemi.com/-/media/Software-and-other-downloads/Desktop-software/nRF5-command-line-tools/sw/nRF-Command-Line-Tools_9_8_1_Linux-x86_64.tar
 
@@ -59,18 +59,10 @@ mkdir ${TRAVIS_BUILD_DIR}/arm
 tar -jxf ${TMPDIR}/arm_gcc_toolchain.tar.bz2 --directory ${TRAVIS_BUILD_DIR}/arm || exit 1
 rm ${TMPDIR}/arm_gcc_toolchain.tar.bz2
 
-# Initialize and update all submodules within the demo app EXCEPT the
-# OpenWeave submodule.
+# Initialize and update all submodules within the example app.
 #
 git -C ${TRAVIS_BUILD_DIR} submodule init || exit 1
 git -C ${TRAVIS_BUILD_DIR} submodule update || exit 1
-
-# Create a symbolic link from openweave-nrf52840-demo/third_party/openweave to
-# the OpenWeave source directory.  This will result in the demo app being
-# built using the target OpenWeave commit.
-#
-# rmdir ${TRAVIS_BUILD_DIR}/openweave-nrf52840-demo/third_party/openweave || exit 1
-# ln -s ${TRAVIS_BUILD_DIR} ${TRAVIS_BUILD_DIR}/openweave-nrf52840-demo/third_party/openweave || exit 1
 
 set +x
 

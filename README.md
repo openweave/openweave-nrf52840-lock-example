@@ -136,8 +136,8 @@ The remaining two LEDs and buttons (#3 and #4) are unused.
 
 ## Building
 
-* Download and install the [Nordic nRF5 SDK for Thread and Zigbee version 2.0.0](https://www.nordicsemi.com/Software-and-Tools/Software/nRF5-SDK-for-Thread-and-Zigbee)
-([Direct download link](https://www.nordicsemi.com/-/media/Software-and-other-downloads/SDKs/nRF5-SDK-for-Thread/nRF5-SDK-for-Thread-and-Zigbee/nRF5SDKforThreadandZigbee20029775ac.zip)) 
+* Download and install the [Nordic nRF5 SDK for Thread and Zigbee version 3.0.0](https://www.nordicsemi.com/Software-and-Tools/Software/nRF5-SDK-for-Thread-and-Zigbee)
+([Direct download link](https://www.nordicsemi.com/-/media/Software-and-other-downloads/SDKs/nRF5-SDK-for-Thread/nRF5-SDK-for-Thread-and-Zigbee/nRF5SDKforThreadandZigbeev300d310e71.zip)) 
 
 
 * Download and install the [Nordic nRF5x Command Line Tools](https://www.nordicsemi.com/Software-and-Tools/Development-Tools/nRF5-Command-Line-Tools)
@@ -154,7 +154,7 @@ The remaining two LEDs and buttons (#3 and #4) are unused.
 
 * Set the following environment variables based on the locations/versions of the packages installed above:
 
-        export NRF5_SDK_ROOT=${HOME}/tools/nRF5_SDK_for_Thread_and_Zigbee_v2.0.0
+        export NRF5_SDK_ROOT=${HOME}/tools/nRF5_SDK_for_Thread_and_Zigbee_v3.0.0
         export NRF5_TOOLS_ROOT=${HOME}/tools/nRF-Command-Line-Tools
         export GNU_INSTALL_ROOT=${HOME}/tools/gcc-arm-none-eabi-7-2018-q2-update/bin/
         export PATH=${PATH}:${NRF5_TOOLS_ROOT}/nrfjprog
