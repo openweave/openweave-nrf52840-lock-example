@@ -71,46 +71,22 @@ using namespace ::nl::Weave::DeviceLayer;
 
 #if NRF_LOG_ENABLED
 
-#define LOGGER_STACK_SIZE (800)
-#define LOGGER_PRIORITY 3
+#if NRF_LOG_USES_TIMESTAMP
 
-static TaskHandle_t sLoggerTaskHandle;
-
-static void LoggerTaskMain(void * arg)
+uint32_t LogTimestamp(void)
 {
-    UNUSED_PARAMETER(arg);
-
-    NRF_LOG_INFO("Logging task running");
-
-    while (1)
-    {
-        NRF_LOG_FLUSH();
-
-        // Wait for a signal that more logging output might be pending.
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-    }
+    return static_cast<uint32_t>(nl::Weave::System::Platform::Layer::GetClock_MonotonicMS());
 }
 
-extern "C" void vApplicationIdleHook( void )
-{
-    xTaskNotifyGive(sLoggerTaskHandle);
-}
+#define LOG_TIMESTAMP_FUNC LogTimestamp
+#define LOG_TIMESTAMP_FREQ 1000
 
-namespace nl {
-namespace Weave {
-namespace DeviceLayer {
+#else // NRF_LOG_USES_TIMESTAMP
 
-/**
- * Called whenever a Weave or LwIP log message is emitted.
- */
-void OnLogOutput(void)
-{
-    xTaskNotifyGive(sLoggerTaskHandle);
-}
+#define LOG_TIMESTAMP_FUNC NULL
+#define LOG_TIMESTAMP_FREQ 0
 
-} // namespace DeviceLayer
-} // namespace Weave
-} // namespace nl
+#endif // NRF_LOG_USES_TIMESTAMP
 
 #endif // NRF_LOG_ENABLED
 
@@ -176,17 +152,11 @@ int main(void)
 #if NRF_LOG_ENABLED
 
     // Initialize logging component
-    ret = NRF_LOG_INIT(NULL);
+    ret = NRF_LOG_INIT(LOG_TIMESTAMP_FUNC, LOG_TIMESTAMP_FREQ);
     APP_ERROR_CHECK(ret);
 
     // Initialize logging backends
     NRF_LOG_DEFAULT_BACKENDS_INIT();
-
-    // Start LOGGER task.
-    if (xTaskCreate(LoggerTaskMain, "LOGGER", LOGGER_STACK_SIZE / sizeof(StackType_t), NULL, LOGGER_PRIORITY, &sLoggerTaskHandle) != pdPASS)
-    {
-        APP_ERROR_HANDLER(0);
-    }
 
 #endif
 
