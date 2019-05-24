@@ -98,12 +98,11 @@ SRCS = \
     $(NRF5_SDK_ROOT)/integration/nrfx/legacy/nrf_drv_rng.c \
     $(NRF5_SDK_ROOT)/modules/nrfx/drivers/src/nrfx_clock.c \
     $(NRF5_SDK_ROOT)/modules/nrfx/drivers/src/nrfx_gpiote.c \
-    $(NRF5_SDK_ROOT)/modules/nrfx/drivers/src/nrfx_power_clock.c \
     $(NRF5_SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uart.c \
     $(NRF5_SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
     $(NRF5_SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
     $(NRF5_SDK_ROOT)/modules/nrfx/mdk/gcc_startup_nrf52840.S \
-    $(NRF5_SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c \
+    $(NRF5_SDK_ROOT)/modules/nrfx/mdk/system_nrf52840.c
 
 INC_DIRS = \
     $(PROJECT_ROOT) \
@@ -139,6 +138,7 @@ INC_DIRS = \
     $(NRF5_SDK_ROOT)/components/libraries/util \
     $(NRF5_SDK_ROOT)/components/softdevice/common \
     $(NRF5_SDK_ROOT)/components/softdevice/s140/headers \
+    $(NRF5_SDK_ROOT)/components/softdevice/mbr/nrf52840/headers \
     $(NRF5_SDK_ROOT)/components/thread/utils \
     $(NRF5_SDK_ROOT)/components/toolchain/cmsis/include \
     $(NRF5_SDK_ROOT)/config/nrf52840/config \
