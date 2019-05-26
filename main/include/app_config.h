@@ -50,6 +50,10 @@
 #define FDS_ENABLED 1
 #define FDS_BACKEND NRF_FSTORAGE_SD
 #define NRF_FSTORAGE_ENABLED 1
+// Number of virtual flash pages used for FDS data storage.
+// NOTE: This value must correspond to FDS_FLASH_PAGES specified in
+// linker directives (.ld) file.
+#define FDS_VIRTUAL_PAGES 2
 
 // ----- Logging Config -----
 
