@@ -1,18 +1,40 @@
 SEARCH_DIR(.)
 GROUP(-lgcc -lc -lnosys)
 
+/* Total size of device FLASH in bytes */
 TOTAL_FLASH_SIZE = 0x100000;
+
+/* Total size of device RAM in bytes */
 TOTAL_RAM_SIZE = 0x40000;
+
+/* Size of an individual FLASH page in bytes */
 FLASH_PAGE_SIZE = 4096;
+
+/* Number of FLASH pages reserved for Nordic FDS.  NOTE: This MUST correspond
+ * to the value specified for FDS_VIRTUAL_PAGES in app_config.h */
+FDS_FLASH_PAGES = 2;
+
+/* Number of FLASH pages reserved for OpenThread data storage. */
+OT_DATA_FLASH_PAGES = 4;
 
 MEMORY
 {
+    /* FLASH region occupied by the Nordic SoftDevice */
     SD_FLASH (rx) : ORIGIN = 0, LENGTH = 0x26000
+    
+    /* RAM region used by the Nordic SoftDevice */
     SD_RAM (rw) : ORIGIN = 0x20000000, LENGTH = 0x5800
 
-    OT_DATA_FLASH (rw) : ORIGIN = TOTAL_FLASH_SIZE - (FLASH_PAGE_SIZE * 4), LENGTH = (FLASH_PAGE_SIZE * 4)
+    /* FLASH region used for Nordic FDS value storage. */
+    FDS_FLASH (rw) : ORIGIN = TOTAL_FLASH_SIZE - (FLASH_PAGE_SIZE * FDS_FLASH_PAGES), LENGTH = (FLASH_PAGE_SIZE * FDS_FLASH_PAGES)
+
+    /* FLASH region used for OpenThread data storage. */ 
+    OT_DATA_FLASH (rw) : ORIGIN = ORIGIN(FDS_FLASH) - (FLASH_PAGE_SIZE * OT_DATA_FLASH_PAGES), LENGTH = (FLASH_PAGE_SIZE * OT_DATA_FLASH_PAGES)
     
+    /* FLASH region used for application code and read-only data. */
     FLASH (rx) : ORIGIN = ORIGIN(SD_FLASH) + LENGTH(SD_FLASH), LENGTH = ORIGIN(OT_DATA_FLASH) - ORIGIN(FLASH)
+    
+    /* RAM region used for application dynamic data. */
     RAM (rw) : ORIGIN = ORIGIN(SD_RAM) + LENGTH(SD_RAM), LENGTH = TOTAL_RAM_SIZE - LENGTH(SD_RAM)
 }
 
