@@ -17,7 +17,8 @@
 #
 #    Description:
 #      This file is the Travis CI hosted, distributed continuous
-#      integration configuration file for openweave-nrf52840-lock-example.
+#      integration configuration file for the OpenWeave nRF52840 Lock
+#      Example Application.
 #
 
 language: generic
@@ -28,18 +29,26 @@ git:
   submodules: false
 
 before_install:
-  - .travis/before_install.sh
+  - .travis/prepare.sh
 
 script:
-  - .travis/script.sh
+  - .travis/build.sh
 
 after_success:
   - .travis/setup_build_artifacts.sh
 
+language: c++
+
+cache: 
+  directories:
+    cache
+
 matrix:
   include:
-    - name: "NRF52840"
-      env: BUILD_TARGET="nrf52840" TRAVIS_TAG="true"
+    - name: "Linux"
+      env: TRAVIS_TAG="true"
+    - name: "OS X"
+      os: osx
 
 #
 #   deploy description:
