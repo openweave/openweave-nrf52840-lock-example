@@ -126,4 +126,9 @@
 // state to another.
 #define ACTUATOR_MOVEMENT_PERIOS_MS             2000
 
+// ---- Lock Example SWU Config ----
+#define SWU_INTERVAl_WINDOW_MIN_MS				(23*60*60*1000) // 23 hours
+#define SWU_INTERVAl_WINDOW_MAX_MS				(24*60*60*1000) // 24 hours
+
+
 #endif //APP_CONFIG_H
