@@ -40,8 +40,8 @@ FetchURL() {
 
 # Tool download links
 #
-NORDIC_SDK_URL=https://www.nordicsemi.com/-/media/Software-and-other-downloads/SDKs/nRF5-SDK-for-Thread/nRF5-SDK-for-Thread-and-Zigbee/nRF5SDKforThreadandZigbeev300d310e71.zip
-NORDIC_SDK_HASH=39842f47cbd1b9ba18a892de2732d5eb0610d7ec38f10ec48aeb326e92e06444
+NORDIC_SDK_URL=https://www.nordicsemi.com/-/media/Software-and-other-downloads/SDKs/nRF5-SDK-for-Thread/nRF5-SDK-for-Thread-and-Zigbee/nRF5SDKforThreadandZigbeev310c7c4730.zip
+NORDIC_SDK_HASH=9ba017d7e67f360855ce49b86c2a8c64f4971028e50caefad407d3e04f977162
 
 if test "${TRAVIS_OS_NAME}" = "linux"; then
 

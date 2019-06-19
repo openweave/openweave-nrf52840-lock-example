@@ -32,12 +32,17 @@
 #include "nrf_crypto.h"
 #endif
 #include "mem_manager.h"
+extern "C" {
+#include "freertos_mbedtls_mutex.h"
+}
 
 #if NRF_LOG_ENABLED
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 #include "nrf_log_backend_uart.h"
 #endif // NRF_LOG_ENABLED
+
+#include <mbedtls/platform.h>
 
 #include <openthread/instance.h>
 #include <openthread/thread.h>
@@ -64,6 +69,8 @@ using namespace ::nl;
 using namespace ::nl::Inet;
 using namespace ::nl::Weave;
 using namespace ::nl::Weave::DeviceLayer;
+
+extern "C" size_t GetHeapTotalSize(void);
 
 // ================================================================================
 // Logging Support
@@ -219,6 +226,10 @@ int main(void)
 
 #endif // defined(SOFTDEVICE_PRESENT) && SOFTDEVICE_PRESENT
 
+    // Configure mbedTLS to use FreeRTOS-based mutexes.  This ensures that mbedTLS can be used
+    // simultaneously from multiple FreeRTOS tasks (e.g. OpenThread, OpenWeave and the application).
+    freertos_mbedtls_mutex_init();
+
     NRF_LOG_INFO("Initializing Weave stack");
 
     ret = PlatformMgr().InitWeaveStack();
@@ -238,6 +249,19 @@ int main(void)
         NRF_LOG_INFO("ThreadStackMgr().InitThreadStack() failed");
         APP_ERROR_HANDLER(ret);
     }
+
+    // Reconfigure mbedTLS to use regular calloc and free.
+    //
+    // By default, OpenThread configures mbedTLS to use its private heap at initialization time.  However,
+    // the OpenThread heap is not thread-safe, effectively preventing other threads from using mbedTLS
+    // functions.
+    //
+    // Note that this presumes that the system heap is itself thread-safe.  On newlib-based systems
+    // this requires a proper implementation of __malloc_lock()/__malloc_unlock() for the applicable
+    // RTOS.  It also requires the heap to be provisioned with enough storage to accommodate OpenThread's
+    // needs.
+    //
+    mbedtls_platform_set_calloc_free(calloc, free);
 
     NRF_LOG_INFO("Starting Weave task");
 
@@ -267,6 +291,12 @@ int main(void)
 
     // Activate deep sleep mode
     SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
+
+    {
+        struct mallinfo minfo = mallinfo();
+        NRF_LOG_INFO("System Heap Utilization: heap size %" PRId32 ", arena size %" PRId32 ", in use %" PRId32 ", free %" PRId32,
+                GetHeapTotalSize(), minfo.arena, minfo.uordblks, minfo.fordblks);
+    }
 
     NRF_LOG_INFO("Starting FreeRTOS scheduler");
 

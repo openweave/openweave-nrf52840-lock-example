@@ -45,6 +45,9 @@ SRCS = \
     $(PROJECT_ROOT)/main/schema/BoltLockTrait.cpp \
     $(PROJECT_ROOT)/main/schema/BoltLockSettingsTrait.cpp \
     $(PROJECT_ROOT)/main/schema/DeviceIdentityTrait.cpp \
+    $(PROJECT_ROOT)/main/support/CXXExceptionStubs.cpp \
+    $(PROJECT_ROOT)/main/support/nRF5Sbrk.c \
+    $(PROJECT_ROOT)/main/support/FreeRTOSNewlibLockSupport.c \
     $(NRF5_SDK_ROOT)/components/ble/common/ble_advdata.c \
     $(NRF5_SDK_ROOT)/components/ble/common/ble_srv_common.c \
     $(NRF5_SDK_ROOT)/components/ble/nrf_ble_gatt/nrf_ble_gatt.c \
@@ -78,6 +81,7 @@ SRCS = \
     $(NRF5_SDK_ROOT)/components/softdevice/common/nrf_sdh.c \
     $(NRF5_SDK_ROOT)/components/softdevice/common/nrf_sdh_ble.c \
     $(NRF5_SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
+    $(NRF5_SDK_ROOT)/components/thread/freertos_mbedtls_mutex/freertos_mbedtls_mutex.c \
     $(NRF5_SDK_ROOT)/external/fprintf/nrf_fprintf.c \
     $(NRF5_SDK_ROOT)/external/fprintf/nrf_fprintf_format.c \
     $(NRF5_SDK_ROOT)/external/freertos/portable/CMSIS/nrf52/port_cmsis.c \
@@ -86,7 +90,7 @@ SRCS = \
     $(NRF5_SDK_ROOT)/external/freertos/source/croutine.c \
     $(NRF5_SDK_ROOT)/external/freertos/source/event_groups.c \
     $(NRF5_SDK_ROOT)/external/freertos/source/list.c \
-    $(NRF5_SDK_ROOT)/external/freertos/source/portable/MemMang/heap_1.c \
+    $(NRF5_SDK_ROOT)/external/freertos/source/portable/MemMang/heap_3.c \
     $(NRF5_SDK_ROOT)/external/freertos/source/queue.c \
     $(NRF5_SDK_ROOT)/external/freertos/source/stream_buffer.c \
     $(NRF5_SDK_ROOT)/external/freertos/source/tasks.c \
@@ -139,7 +143,7 @@ INC_DIRS = \
     $(NRF5_SDK_ROOT)/components/softdevice/common \
     $(NRF5_SDK_ROOT)/components/softdevice/s140/headers \
     $(NRF5_SDK_ROOT)/components/softdevice/mbr/nrf52840/headers \
-    $(NRF5_SDK_ROOT)/components/thread/utils \
+    $(NRF5_SDK_ROOT)/components/thread/freertos_mbedtls_mutex \
     $(NRF5_SDK_ROOT)/components/toolchain/cmsis/include \
     $(NRF5_SDK_ROOT)/config/nrf52840/config \
     $(NRF5_SDK_ROOT)/external/fprintf \
@@ -162,7 +166,7 @@ DEFINES = \
     CONFIG_GPIO_AS_PINRESET \
     FLOAT_ABI_HARD \
     USE_APP_CONFIG \
-    __HEAP_SIZE=0 \
+    __HEAP_SIZE=40960 \
     __STACK_SIZE=8192 \
     SOFTDEVICE_PRESENT
 
