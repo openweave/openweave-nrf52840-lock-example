@@ -130,13 +130,6 @@
  */
 #define WEAVE_DEVICE_CONFIG_ENABLE_TRAIT_MANAGER 0
 
-/**
- * WEAVE_DEVICE_CONFIG_SWU_BDX_BLOCK_SIZE
- *
- * Specifies the block size to be used during software download over BDX.
- */
-#define WEAVE_DEVICE_CONFIG_SWU_BDX_BLOCK_SIZE		1024
-
 #define WEAVE_CONFIG_MAX_BINDINGS 8
 
 #endif // WEAVE_PROJECT_CONFIG_H

@@ -29,6 +29,7 @@ struct AppEvent
         kEventType_Button = 0,
         kEventType_Timer,
         kEventType_Lock,
+        kEventType_Install,
     };
 
     uint16_t Type;

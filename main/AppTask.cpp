@@ -510,6 +510,10 @@ void AppTask::DispatchEvent(AppEvent * aEvent)
     }
 }
 
+void AppTask::InstallEventHandler(AppEvent * aEvent)
+{
+    SoftwareUpdateMgr().ImageInstallComplete(WEAVE_NO_ERROR);
+}
 
 void AppTask::HandleSoftwareUpdateEvent(void *apAppState,
                                         SoftwareUpdateManager::EventType aEvent,
@@ -605,6 +609,11 @@ void AppTask::HandleSoftwareUpdateEvent(void *apAppState,
         }
         case SoftwareUpdateManager::kEvent_StoreImageBlock:
         {
+            /* This example does not store image blocks in persistent storage and merely discards them after
+             * computing the SHA over it. As a result, integrity has to be computed over image blocks rather than
+             * the entire image. This pattern is NOT recommended since the computed integrity
+             * will be lost if the device rebooted during download (unless also stored in persistent storage).
+             */
             sSHA256.AddData(aInParam.StoreImageBlock.DataBlock, aInParam.StoreImageBlock.DataBlockLen);
             numBytesDownloaded += aInParam.StoreImageBlock.DataBlockLen;
             break;
@@ -634,8 +643,15 @@ void AppTask::HandleSoftwareUpdateEvent(void *apAppState,
 
         case SoftwareUpdateManager::kEvent_StartInstallImage:
         {
+            AppTask *_this = static_cast<AppTask*>(apAppState);
+
             NRF_LOG_INFO("Image Install is not supported in this example application");
-            SoftwareUpdateMgr().Abort();
+
+            AppEvent event;
+            event.Type             = AppEvent::kEventType_Install;
+            event.Handler          = InstallEventHandler;
+            _this->PostEvent(&event);
+
             break;
         }
 
@@ -663,7 +679,7 @@ void AppTask::HandleSoftwareUpdateEvent(void *apAppState,
             }
             else
             {
-                NRF_LOG_INFO("Software Update Attempt Complete");
+                NRF_LOG_INFO("Software Update Completed");
             }
             break;
         }
