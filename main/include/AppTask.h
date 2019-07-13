@@ -26,9 +26,12 @@
 #include "BoltLockManager.h"
 
 #include <Weave/DeviceLayer/WeaveDeviceLayer.h>
+#include <Weave/DeviceLayer/SoftwareUpdateManager.h>
 
 class AppTask
 {
+    typedef ::nl::Weave::DeviceLayer::SoftwareUpdateManager SoftwareUpdateManager;
+
 public:
     int StartAppTask();
     static void AppTaskMain(void * pvParameter);
@@ -51,9 +54,15 @@ private:
     static void FunctionTimerEventHandler(AppEvent * aEvent);
     static void FunctionHandler(AppEvent * aEvent);
     static void LockActionEventHandler(AppEvent * aEvent);
+    static void InstallEventHandler(AppEvent * aEvent);
 
     static void ButtonEventHandler(uint8_t pin_no, uint8_t button_action);
     static void TimerEventHandler(void * p_context);
+
+    static void HandleSoftwareUpdateEvent(void *apAppState,
+                                          SoftwareUpdateManager::EventType aEvent,
+                                          const SoftwareUpdateManager::InEventParam& aInParam,
+                                          SoftwareUpdateManager::OutEventParam& aOutParam);
 
     void StartTimer(uint32_t aTimeoutInMs);
 

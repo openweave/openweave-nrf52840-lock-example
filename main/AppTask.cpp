@@ -32,7 +32,13 @@
 
 #include "FreeRTOS.h"
 
+#include <Weave/Profiles/WeaveProfiles.h>
+#include <Weave/Support/crypto/HashAlgos.h>
+#include <Weave/DeviceLayer/SoftwareUpdateManager.h>
+
+using namespace ::nl::Weave::TLV;
 using namespace ::nl::Weave::DeviceLayer;
+using namespace ::nl::Weave::Profiles::SoftwareUpdate;
 
 #define FACTORY_RESET_TRIGGER_TIMEOUT       3000
 #define FACTORY_RESET_CANCEL_WINDOW_TIMEOUT 3000
@@ -57,6 +63,10 @@ static bool sIsPairedToAccount                = false;
 static bool sIsServiceSubscriptionEstablished = false;
 static bool sHaveBLEConnections               = false;
 static bool sHaveServiceConnectivity          = false;
+
+static char sPackageSpecification[] = "Lock Example";
+
+static nl::Weave::Platform::Security::SHA256 sSHA256;
 
 AppTask AppTask::sAppTask;
 
@@ -139,7 +149,7 @@ int AppTask::Init()
 
     BoltLockMgr().SetCallbacks(ActionInitiated, ActionCompleted);
 
-    // Inititalize WDM Feature
+    // Initialize WDM Feature
     ret = WdmFeature().Init();
     if (ret != WEAVE_NO_ERROR)
     {
@@ -147,8 +157,14 @@ int AppTask::Init()
         APP_ERROR_HANDLER(ret);
     }
 
+    SoftwareUpdateMgr().SetEventCallback(this, HandleSoftwareUpdateEvent);
+
+    // Enable timer based Software Update Checks
+    SoftwareUpdateMgr().SetQueryIntervalWindow(SWU_INTERVAl_WINDOW_MIN_MS, SWU_INTERVAl_WINDOW_MAX_MS);
+
     return ret;
 }
+
 void AppTask::AppTaskMain(void * pvParameter)
 {
     ret_code_t ret;
@@ -358,12 +374,21 @@ void AppTask::FunctionHandler(AppEvent * aEvent)
     }
     else
     {
-        // If the button was released before factory reset got initiated, trigger a software udpate.
+        // If the button was released before factory reset got initiated, trigger a software update.
         if (sAppTask.mFunctionTimerActive && sAppTask.mFunction == kFunction_SoftwareUpdate)
         {
             sAppTask.CancelTimer();
 
-            NRF_LOG_INFO("Software Update NOT IMPLEMENTED.");
+            if (SoftwareUpdateMgr().IsInProgress())
+            {
+                NRF_LOG_INFO("Canceling In Progress Software Update");
+                SoftwareUpdateMgr().Abort();
+            }
+            else
+            {
+                NRF_LOG_INFO("Manual Software Update Triggered");
+                SoftwareUpdateMgr().CheckNow();
+            }
         }
         else if (sAppTask.mFunctionTimerActive && sAppTask.mFunction == kFunction_FactoryReset)
         {
@@ -375,10 +400,10 @@ void AppTask::FunctionHandler(AppEvent * aEvent)
 
             sAppTask.CancelTimer();
 
-            // Change the function to none selected since factory reset has been cancelled.
+            // Change the function to none selected since factory reset has been canceled.
             sAppTask.mFunction = kFunction_NoneSelected;
 
-            NRF_LOG_INFO("Factory Reset has been Cancelled");
+            NRF_LOG_INFO("Factory Reset has been Canceled");
         }
     }
 }
@@ -481,6 +506,186 @@ void AppTask::DispatchEvent(AppEvent * aEvent)
     }
     else
     {
-        NRF_LOG_INFO("Event recieved with no handler. Dropping event.");
+        NRF_LOG_INFO("Event received with no handler. Dropping event.");
+    }
+}
+
+void AppTask::InstallEventHandler(AppEvent * aEvent)
+{
+    SoftwareUpdateMgr().ImageInstallComplete(WEAVE_NO_ERROR);
+}
+
+void AppTask::HandleSoftwareUpdateEvent(void *apAppState,
+                                        SoftwareUpdateManager::EventType aEvent,
+                                        const SoftwareUpdateManager::InEventParam& aInParam,
+                                        SoftwareUpdateManager::OutEventParam& aOutParam)
+{
+    static uint64_t numBytesDownloaded = 0;
+
+    switch(aEvent)
+    {
+        case SoftwareUpdateManager::kEvent_PrepareQuery:
+        {
+            aOutParam.PrepareQuery.PackageSpecification = sPackageSpecification;
+            aOutParam.PrepareQuery.DesiredLocale = NULL;
+            break;
+        }
+
+        case SoftwareUpdateManager::kEvent_PrepareQuery_Metadata:
+        {
+            WEAVE_ERROR err;
+            bool haveSufficientBattery = true;
+            uint32_t certBodyId = 0;
+
+            TLVWriter *writer = aInParam.PrepareQuery_Metadata.MetaDataWriter;
+
+            if (writer)
+            {
+                // Providing an installed Locale as MetaData is optional. The commented section below provides an example
+                // of how one can be added to metadata.
+
+                // TLVType arrayContainerType;
+                // err = writer->StartContainer(ProfileTag(::nl::Weave::Profiles::kWeaveProfile_SWU, kTag_InstalledLocales), kTLVType_Array, arrayContainerType);
+                // SuccessOrExit(err);
+                // err = writer->PutString(AnonymousTag, installedLocale);
+                // SuccessOrExit(err);
+                // err = writer->EndContainer(arrayContainerType);
+
+                err = writer->Put(ProfileTag(::nl::Weave::Profiles::kWeaveProfile_SWU, kTag_CertBodyId), certBodyId);
+                APP_ERROR_CHECK(err);
+
+                err = writer->PutBoolean(ProfileTag(::nl::Weave::Profiles::kWeaveProfile_SWU, kTag_SufficientBatterySWU), haveSufficientBattery);
+                APP_ERROR_CHECK(err);
+            }
+            else
+            {
+                aOutParam.PrepareQuery_Metadata.Error = WEAVE_ERROR_INVALID_ARGUMENT;
+                NRF_LOG_INFO("ERROR ! aOutParam.PrepareQuery_Metadata.MetaDataWriter is NULL");
+            }
+            break;
+        }
+
+        case SoftwareUpdateManager::kEvent_QueryPrepareFailed:
+        {
+            NRF_LOG_INFO("Software Update failed during prepare %d (%s) statusReport = %s", aInParam.QueryPrepareFailed.Error,
+                                                                nl::ErrorStr(aInParam.QueryPrepareFailed.Error),
+                                                                (aInParam.QueryPrepareFailed.StatusReport != NULL) ?
+                                                                 nl::StatusReportStr(aInParam.QueryPrepareFailed.StatusReport->mProfileId,
+                                                                                    aInParam.QueryPrepareFailed.StatusReport->mStatusCode) :
+                                                                 "None");
+            break;
+        }
+
+        case SoftwareUpdateManager::kEvent_SoftwareUpdateAvailable:
+        {
+            NRF_LOG_INFO("Software Update Available - Priority: %d Condition: %d Version: %s IntegrityType: %d URI: %s",
+                                                                                aInParam.SoftwareUpdateAvailable.Priority,
+                                                                                aInParam.SoftwareUpdateAvailable.Condition,
+                                                                                aInParam.SoftwareUpdateAvailable.Version,
+                                                                                aInParam.SoftwareUpdateAvailable.IntegrityType,
+                                                                                aInParam.SoftwareUpdateAvailable.URI);
+
+            break;
+        }
+
+        case SoftwareUpdateManager::kEvent_FetchPartialImageInfo:
+        {
+            aOutParam.FetchPartialImageInfo.PartialImageLen = 0;
+            break;
+        }
+
+        case SoftwareUpdateManager::kEvent_ClearImageFromStorage:
+        {
+            NRF_LOG_INFO("Clearing Image Storage");
+            numBytesDownloaded = 0;
+            break;
+        }
+
+        case SoftwareUpdateManager::kEvent_StartImageDownload:
+        {
+            sSHA256.Begin();
+            NRF_LOG_INFO("Starting Image Download");
+            break;
+        }
+        case SoftwareUpdateManager::kEvent_StoreImageBlock:
+        {
+            /* This example does not store image blocks in persistent storage and merely discards them after
+             * computing the SHA over it. As a result, integrity has to be computed over image blocks rather than
+             * the entire image. This pattern is NOT recommended since the computed integrity
+             * will be lost if the device rebooted during download (unless also stored in persistent storage).
+             */
+            sSHA256.AddData(aInParam.StoreImageBlock.DataBlock, aInParam.StoreImageBlock.DataBlockLen);
+            numBytesDownloaded += aInParam.StoreImageBlock.DataBlockLen;
+            break;
+        }
+
+        case SoftwareUpdateManager::kEvent_ComputeImageIntegrity:
+        {
+            NRF_LOG_INFO("Num. bytes downloaded: %d", numBytesDownloaded);
+
+            // Make sure that the buffer provided in the parameter is large enough.
+            if (aInParam.ComputeImageIntegrity.IntegrityValueBufLen < sSHA256.kHashLength)
+            {
+                aOutParam.ComputeImageIntegrity.Error = WEAVE_ERROR_BUFFER_TOO_SMALL;
+            }
+            else
+            {
+                sSHA256.Finish(aInParam.ComputeImageIntegrity.IntegrityValueBuf);
+            }
+            break;
+        }
+
+        case SoftwareUpdateManager::kEvent_ReadyToInstall:
+        {
+            NRF_LOG_INFO("Image is ready to be installed");
+            break;
+        }
+
+        case SoftwareUpdateManager::kEvent_StartInstallImage:
+        {
+            AppTask *_this = static_cast<AppTask*>(apAppState);
+
+            NRF_LOG_INFO("Image Install is not supported in this example application");
+
+            AppEvent event;
+            event.Type             = AppEvent::kEventType_Install;
+            event.Handler          = InstallEventHandler;
+            _this->PostEvent(&event);
+
+            break;
+        }
+
+        case SoftwareUpdateManager::kEvent_Finished:
+        {
+            if (aInParam.Finished.Error == WEAVE_ERROR_NO_SW_UPDATE_AVAILABLE)
+            {
+                NRF_LOG_INFO("No Software Update Available");
+            }
+            else if (aInParam.Finished.Error == WEAVE_DEVICE_ERROR_SOFTWARE_UPDATE_IGNORED)
+            {
+                NRF_LOG_INFO("Software Update Ignored by Application");
+            }
+            else if (aInParam.Finished.Error == WEAVE_DEVICE_ERROR_SOFTWARE_UPDATE_ABORTED)
+            {
+                NRF_LOG_INFO("Software Update Aborted by Application");
+            }
+            else if (aInParam.Finished.Error != WEAVE_NO_ERROR || aInParam.Finished.StatusReport != NULL)
+            {
+                NRF_LOG_INFO("Software Update failed %s statusReport = %s", nl::ErrorStr(aInParam.Finished.Error),
+                                                                (aInParam.Finished.StatusReport != NULL) ?
+                                                                 nl::StatusReportStr(aInParam.Finished.StatusReport->mProfileId,
+                                                                                    aInParam.Finished.StatusReport->mStatusCode) :
+                                                                 "None");
+            }
+            else
+            {
+                NRF_LOG_INFO("Software Update Completed");
+            }
+            break;
+        }
+
+        default:
+            nl::Weave::DeviceLayer::SoftwareUpdateManager::DefaultEventHandler(apAppState, aEvent, aInParam, aOutParam);
+            break;
     }
 }
