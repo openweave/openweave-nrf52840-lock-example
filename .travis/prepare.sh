@@ -30,7 +30,7 @@ FetchURL() {
     local URL="$1"
     local LOCAL_FILE_NAME=$2
     local HASH=$3
-    
+
     # NOTE: 2 spaces required between hash value and file name.
     if ! (echo "${HASH}  ${LOCAL_FILE_NAME}" | ${HASH_CMD} -c --status >/dev/null 2>&1); then
         rm -f ${LOCAL_FILE_NAME}
@@ -45,17 +45,17 @@ NORDIC_SDK_HASH=39842f47cbd1b9ba18a892de2732d5eb0610d7ec38f10ec48aeb326e92e06444
 
 if test "${TRAVIS_OS_NAME}" = "linux"; then
 
-    NORDIC_COMMAND_LINE_TOOLS_URL=https://www.nordicsemi.com/-/media/Software-and-other-downloads/Desktop-software/nRF5-command-line-tools/sw/nRF-Command-Line-Tools_9_8_1_Linux-x86_64.tar
+    NORDIC_COMMAND_LINE_TOOLS_URL=https://www.nordicsemi.com/-/media/Software-and-other-downloads/Desktop-software/nRF-command-line-tools/sw/Versions-9-x-x/nRF-Command-Line-Tools_9_8_1_Linux-x86_64.tar
     NORDIC_COMMAND_LINE_TOOLS_HASH=ed3eb5325f9e1dcbfc2046f3b347b7b76a802ddb31a8b113965b4097a893f6d1
-    
+
     ARM_GCC_TOOLCHAIN_URL=https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2
     ARM_GCC_TOOLCHAIN_HASH=bb17109f0ee697254a5d4ae6e5e01440e3ea8f0277f2e8169bf95d07c7d5fe69
-    
+
 elif test "${TRAVIS_OS_NAME}" = "osx"; then
 
-    NORDIC_COMMAND_LINE_TOOLS_URL=https://www.nordicsemi.com/-/media/Software-and-other-downloads/Desktop-software/nRF5-command-line-tools/sw/nRF-Command-Line-Tools_9_8_1_OSX.tar
+    NORDIC_COMMAND_LINE_TOOLS_URL=https://www.nordicsemi.com/-/media/Software-and-other-downloads/Desktop-software/nRF-command-line-tools/sw/Versions-9-x-x/nRF-Command-Line-Tools_9_8_1_OSX.tar
     NORDIC_COMMAND_LINE_TOOLS_HASH=b4b77e4368267ba948f5bedbdc1be7699322e453c4e9f097f48763b78e192ff2
-     
+
     ARM_GCC_TOOLCHAIN_URL=https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-mac.tar.bz2
     ARM_GCC_TOOLCHAIN_HASH=c1c4af5226d52bd1b688cf1bd78f60eeea53b19fb337ef1df4380d752ba88759
 
