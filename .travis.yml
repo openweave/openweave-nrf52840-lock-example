@@ -69,5 +69,6 @@ deploy:
   upload-dir: openweave-nrf52840-lock-example/$TRAVIS_BUILD_NUMBER
   local-dir: "$TRAVIS_BUILD_DIR/build_artifacts"
   on:
+    branch: master
     repo: openweave/openweave-nrf52840-lock-example
     tags: true
