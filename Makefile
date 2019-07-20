@@ -48,6 +48,8 @@ SRCS = \
     $(PROJECT_ROOT)/main/support/CXXExceptionStubs.cpp \
     $(PROJECT_ROOT)/main/support/nRF5Sbrk.c \
     $(PROJECT_ROOT)/main/support/FreeRTOSNewlibLockSupport.c \
+    $(PROJECT_ROOT)/main/support/AltPrintf.c \
+    $(PROJECT_ROOT)/third_party/printf/printf.c \
     $(NRF5_SDK_ROOT)/components/ble/common/ble_advdata.c \
     $(NRF5_SDK_ROOT)/components/ble/common/ble_srv_common.c \
     $(NRF5_SDK_ROOT)/components/ble/nrf_ble_gatt/nrf_ble_gatt.c \
@@ -114,6 +116,7 @@ INC_DIRS = \
     $(PROJECT_ROOT)/main/include \
     $(PROJECT_ROOT)/main/traits/include \
     $(PROJECT_ROOT)/main/schema/include \
+    $(PROJECT_ROOT)/third_party/printf \
     $(NRF5_SDK_ROOT)/components \
     $(NRF5_SDK_ROOT)/components/boards \
     $(NRF5_SDK_ROOT)/components/ble/ble_advertising \
@@ -168,7 +171,14 @@ DEFINES = \
     USE_APP_CONFIG \
     __HEAP_SIZE=40960 \
     __STACK_SIZE=8192 \
-    SOFTDEVICE_PRESENT
+    SOFTDEVICE_PRESENT \
+    PRINTF_DISABLE_SUPPORT_EXPONENTIAL
+
+CFLAGS = \
+    --specs=nano.specs
+
+LDFLAGS = \
+    --specs=nano.specs
 
 OPENWEAVE_PROJECT_CONFIG = $(PROJECT_ROOT)/main/include/WeaveProjectConfig.h
 
