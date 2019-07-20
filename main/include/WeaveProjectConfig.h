@@ -53,16 +53,14 @@
 /**
  * WEAVE_DEVICE_CONFIG_DEVICE_VENDOR_ID
  *
- * Use yale vendor id for now
- * TODO: Update to Google Vendor id when resource is available in the cloud
+ * 0xE100: Google's Vendor Id.
  */
 #define WEAVE_DEVICE_CONFIG_DEVICE_VENDOR_ID 0xE100
 
 /**
  * WEAVE_DEVICE_CONFIG_DEVICE_PRODUCT_ID
  *
- * The unique id assigned by the device vendor to identify the product or device type.  This
- * number is scoped to the device vendor id.
+ * 0xFE00: SDK Sample Lock Resource
  */
 #define WEAVE_DEVICE_CONFIG_DEVICE_PRODUCT_ID 0xFE00
 
@@ -81,8 +79,9 @@
  *
  * A string identifying the firmware revision running on the device.
  */
+#ifndef WEAVE_DEVICE_CONFIG_DEVICE_FIRMWARE_REVISION
 #define WEAVE_DEVICE_CONFIG_DEVICE_FIRMWARE_REVISION "1.0d1"
-
+#endif
 /**
  * WEAVE_DEVICE_CONFIG_ENABLE_WOBLE
  *

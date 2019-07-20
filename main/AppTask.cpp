@@ -609,6 +609,15 @@ void AppTask::HandleSoftwareUpdateEvent(void *apAppState,
 
         case SoftwareUpdateManager::kEvent_SoftwareUpdateAvailable:
         {
+            WEAVE_ERROR err;
+
+            char currentFirmwareRev[ConfigurationManager::kMaxFirmwareRevisionLength+1] = {0};
+            size_t currentFirmwareRevLen;
+            err = ConfigurationMgr().GetFirmwareRevision(currentFirmwareRev, sizeof(currentFirmwareRev), currentFirmwareRevLen);
+            APP_ERROR_CHECK(err);
+
+            NRF_LOG_INFO("Current Firmware Version: %s", currentFirmwareRev);
+
             NRF_LOG_INFO("Software Update Available - Priority: %d Condition: %d Version: %s IntegrityType: %d URI: %s",
                                                                                 aInParam.SoftwareUpdateAvailable.Priority,
                                                                                 aInParam.SoftwareUpdateAvailable.Condition,
