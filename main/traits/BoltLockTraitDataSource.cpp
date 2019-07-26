@@ -71,17 +71,18 @@ void BoltLockTraitDataSource::InitiateLock(int32_t aLockActor)
 
     Unlock();
 
+    BoltActuatorStateChangeEvent ev;
+    EventOptions options(true);
+    ev.state = BOLT_STATE_EXTENDED;
+    ev.actuatorState = BOLT_ACTUATOR_STATE_LOCKING;
+    ev.lockedState = BOLT_LOCKED_STATE_UNLOCKED;
+    ev.boltLockActor.method = aLockActor;
+    ev.boltLockActor.SetOriginatorNull();
+    ev.boltLockActor.SetAgentNull();
+    nl::LogEvent(&ev, options);
+
     WdmFeature().ProcessTraitChanges();
 
-    // BoltActuatorStateChangeEvent ev;
-    // EventOptions options(true);
-    // ev.state = BOLT_STATE_EXTENDED;
-    // ev.actuatorState = BOLT_ACTUATOR_STATE_LOCKING;
-    // ev.lockedState = BOLT_LOCKED_STATE_UNLOCKED;
-    // ev.boltLockActor.method = aLockActor;
-    // ev.boltLockActor.SetOriginatorNull();
-    // ev.boltLockActor.SetAgentNull();
-    // nl::LogEvent(&ev, options);
 }
 
 void BoltLockTraitDataSource::InitiateUnlock(int32_t aLockActor)
@@ -99,17 +100,17 @@ void BoltLockTraitDataSource::InitiateUnlock(int32_t aLockActor)
 
     Unlock();
 
-    WdmFeature().ProcessTraitChanges();
+    BoltActuatorStateChangeEvent ev;
+    EventOptions options(true);
+    ev.state = BOLT_STATE_EXTENDED;
+    ev.actuatorState = BOLT_ACTUATOR_STATE_UNLOCKING;
+    ev.lockedState = BOLT_LOCKED_STATE_UNLOCKED;
+    ev.boltLockActor.method = aLockActor;
+    ev.boltLockActor.SetOriginatorNull();
+    ev.boltLockActor.SetAgentNull();
+    nl::LogEvent(&ev, options);
 
-    // BoltActuatorStateChangeEvent ev;
-    // EventOptions options(true);
-    // ev.state = BOLT_STATE_EXTENDED;
-    // ev.actuatorState = BOLT_ACTUATOR_STATE_UNLOCKING;
-    // ev.lockedState = BOLT_LOCKED_STATE_UNLOCKED;
-    // ev.boltLockActor.method = aLockActor;
-    // ev.boltLockActor.SetOriginatorNull();
-    // ev.boltLockActor.SetAgentNull();
-    // nl::LogEvent(&ev, options);
+    WdmFeature().ProcessTraitChanges();
 }
 
 void BoltLockTraitDataSource::LockingSuccessful(void)
@@ -125,17 +126,17 @@ void BoltLockTraitDataSource::LockingSuccessful(void)
 
     Unlock();
 
-    WdmFeature().ProcessTraitChanges();
+    BoltActuatorStateChangeEvent ev;
+    EventOptions options(true);
+    ev.state = BOLT_STATE_EXTENDED;
+    ev.actuatorState = BOLT_ACTUATOR_STATE_OK;
+    ev.lockedState = BOLT_LOCKED_STATE_LOCKED;
+    ev.boltLockActor.method = mLockActor;
+    ev.boltLockActor.SetOriginatorNull();
+    ev.boltLockActor.SetAgentNull();
+    nl::LogEvent(&ev, options);
 
-    // BoltActuatorStateChangeEvent ev;
-    // EventOptions options(true);
-    // ev.state = BOLT_STATE_EXTENDED;
-    // ev.actuatorState = BOLT_ACTUATOR_STATE_OK;
-    // ev.lockedState = BOLT_LOCKED_STATE_LOCKED;
-    // ev.boltLockActor.method = mLockActor;
-    // ev.boltLockActor.SetOriginatorNull();
-    // ev.boltLockActor.SetAgentNull();
-    // nl::LogEvent(&ev, options);
+    WdmFeature().ProcessTraitChanges();
 }
 
 void BoltLockTraitDataSource::UnlockingSuccessful(void)
@@ -150,17 +151,17 @@ void BoltLockTraitDataSource::UnlockingSuccessful(void)
 
     Unlock();
 
-    WdmFeature().ProcessTraitChanges();
+    BoltActuatorStateChangeEvent ev;
+    EventOptions options(true);
+    ev.state = BOLT_STATE_RETRACTED;
+    ev.actuatorState = BOLT_ACTUATOR_STATE_OK;
+    ev.lockedState = BOLT_LOCKED_STATE_UNLOCKED;
+    ev.boltLockActor.method = mLockActor;
+    ev.boltLockActor.SetOriginatorNull();
+    ev.boltLockActor.SetAgentNull();
+    nl::LogEvent(&ev, options);
 
-    // BoltActuatorStateChangeEvent ev;
-    // EventOptions options(true);
-    // ev.state = BOLT_STATE_RETRACTED;
-    // ev.actuatorState = BOLT_ACTUATOR_STATE_OK;
-    // ev.lockedState = BOLT_LOCKED_STATE_UNLOCKED;
-    // ev.boltLockActor.method = mLockActor;
-    // ev.boltLockActor.SetOriginatorNull();
-    // ev.boltLockActor.SetAgentNull();
-    // nl::LogEvent(&ev, options);
+    WdmFeature().ProcessTraitChanges();
 }
 
 WEAVE_ERROR BoltLockTraitDataSource::GetLeafData(PropertyPathHandle aLeafHandle, uint64_t aTagToWrite, TLVWriter & aWriter)
@@ -223,9 +224,6 @@ void BoltLockTraitDataSource::OnCustomCommand(nl::Weave::Profiles::DataManagemen
     uint32_t reportProfileId  = nl::Weave::Profiles::kWeaveProfile_Common;
     uint16_t reportStatusCode = nl::Weave::Profiles::Common::kStatus_BadRequest;
 
-    /* Commenting out version and expiry time validation for now. This will tackled
-     * later.
-     */
     if (aIsMustBeVersionValid)
     {
         if (aMustBeVersion != GetVersion())
