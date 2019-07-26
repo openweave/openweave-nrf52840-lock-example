@@ -263,6 +263,28 @@ int main(void)
     //
     mbedtls_platform_set_calloc_free(calloc, free);
 
+    // Configure device to operate as a Thread sleepy end-device.
+    ret = ConnectivityMgr().SetThreadDeviceType(ConnectivityManager::kThreadDeviceType_SleepyEndDevice);
+    if (ret != WEAVE_NO_ERROR)
+    {
+        NRF_LOG_INFO("ConnectivityMgr().SetThreadDeviceType() failed");
+        APP_ERROR_HANDLER(ret);
+    }
+
+    // Configure the Thread polling behavior for the device.
+    {
+        ConnectivityManager::ThreadPollingConfig pollingConfig;
+        pollingConfig.Clear();
+        pollingConfig.ActivePollingIntervalMS = THREAD_ACTIVE_POLLING_INTERVAL_MS;
+        pollingConfig.InactivePollingIntervalMS = THREAD_INACTIVE_POLLING_INTERVAL_MS;
+        ret = ConnectivityMgr().SetThreadPollingConfig(pollingConfig);
+        if (ret != WEAVE_NO_ERROR)
+        {
+            NRF_LOG_INFO("ConnectivityMgr().SetThreadPollingConfig() failed");
+            APP_ERROR_HANDLER(ret);
+        }
+    }
+
     NRF_LOG_INFO("Starting Weave task");
 
     ret = PlatformMgr().StartEventLoopTask();
