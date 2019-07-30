@@ -48,6 +48,8 @@ using namespace ::nl::Weave::Profiles::SoftwareUpdate;
 
 APP_TIMER_DEF(sFunctionTimer);
 
+static SemaphoreHandle_t sWeaveEventLock;
+
 static TaskHandle_t sAppTaskHandle;
 static QueueHandle_t sAppEventQueue;
 
@@ -69,6 +71,28 @@ static char sPackageSpecification[] = "Lock Example";
 static nl::Weave::Platform::Security::SHA256 sSHA256;
 
 AppTask AppTask::sAppTask;
+
+namespace nl {
+namespace Weave {
+namespace Profiles {
+namespace DataManagement_Current {
+namespace Platform {
+
+void CriticalSectionEnter(void)
+{
+    xSemaphoreTake(sWeaveEventLock, 0);
+}
+
+void CriticalSectionExit(void)
+{
+    xSemaphoreGive(sWeaveEventLock);
+}
+
+} // namespace Platform
+} // namespace DataManagement_Current
+} // namespace Profiles
+} // namespace Weave
+} // namespace nl
 
 int AppTask::StartAppTask()
 {
@@ -148,6 +172,13 @@ int AppTask::Init()
     }
 
     BoltLockMgr().SetCallbacks(ActionInitiated, ActionCompleted);
+
+    sWeaveEventLock = xSemaphoreCreateMutex();
+    if (sWeaveEventLock == NULL)
+    {
+        NRF_LOG_INFO("xSemaphoreCreateMutex() failed");
+        APP_ERROR_HANDLER(NRF_ERROR_NULL);
+    }
 
     // Initialize WDM Feature
     ret = WdmFeature().Init();

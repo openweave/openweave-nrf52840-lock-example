@@ -28,7 +28,14 @@
 #ifndef WEAVE_PROJECT_CONFIG_H
 #define WEAVE_PROJECT_CONFIG_H
 
-// Use the default device id 18B4300000000003 if one hasn't been provisioned in flash.
+/**
+ * WEAVE_DEVICE_CONFIG_ENABLE_TEST_DEVICE_IDENTITY
+ *
+ * Enables the use of a hard-coded default Weave device id and credentials if no device id
+ * is found in Weave NV storage.
+ *
+ * This option is for testing only and should be disabled in production releases.
+ */
 #define WEAVE_DEVICE_CONFIG_ENABLE_TEST_DEVICE_IDENTITY 34
 
 // Use a default pairing code if one hasn't been provisioned in flash.
@@ -92,44 +99,41 @@
 #define WEAVE_DEVICE_CONFIG_ENABLE_WEAVE_TIME_SERVICE_TIME_SYNC 1
 
 /**
- * WEAVE_DEVICE_CONFIG_SERVICE_PROVISIONING_CONNECTIVITY_TIMEOUT
+ * WEAVE_DEVICE_CONFIG_USE_TEST_SERIAL_NUMBER
  *
- * The maximum amount of time (in milliseconds) to wait for service connectivity during the device
- * service provisioning step.  More specifically, this is the maximum amount of time the device will
- * wait for connectivity to be established with the service at the point where the device waiting
- * to send a Pair Device to Account request to the Service Provisioning service.
- * TODO: Revert this back to default values
+ * Enables the use of a hard-coded default serial number if none
+ * is found in Weave NV storage.
  */
-#define WEAVE_DEVICE_CONFIG_SERVICE_PROVISIONING_CONNECTIVITY_TIMEOUT 300000
-
-/**
- * WEAVE_DEVICE_CONFIG_SERVICE_PROVISIONING_REQUEST_TIMEOUT
- *
- * Specifies the maximum amount of time (in milliseconds) to wait for a response from the Service
- * Provisioning service.
- * TODO: Revert this back to default values
- */
-#define WEAVE_DEVICE_CONFIG_SERVICE_PROVISIONING_REQUEST_TIMEOUT 300000
-
-/**
- * WEAVE_DEVICE_CONFIG_DISABLE_ACCOUNT_PAIRING
- *
- * Disables sending the PairDeviceToAccount request to the service during a RegisterServicePairAccount
- * operation.  When this option is enabled, the device will perform all local operations associated
- * with registering a service, but will not request the service to add the device to the user's account.
- */
-#define WEAVE_DEVICE_CONFIG_DISABLE_ACCOUNT_PAIRING 0
-
 #define WEAVE_DEVICE_CONFIG_USE_TEST_SERIAL_NUMBER "DUMMY_SN"
 
 /**
- * WEAVE_DEVICE_CONFIG_ENABLE_TRAIT_MANAGER
+ * WEAVE_CONFIG_MAX_BINDINGS
  *
- * Explicitly disable the trait manager since the application will be taking care of publishing
- * and subscribing to traits
+ * Maximum number of simultaneously active bindings per WeaveExchangeManager
+ * 1 (Time Sync) + 2 (Two 1-way subscriptions) + 1 (Software Update) = 4
+ * in the worst case. Keeping another 4 as buffer.
  */
-#define WEAVE_DEVICE_CONFIG_ENABLE_TRAIT_MANAGER 0
-
 #define WEAVE_CONFIG_MAX_BINDINGS 8
+
+/**
+ * WEAVE_CONFIG_EVENT_LOGGING_WDM_OFFLOAD
+ *
+ * Select the ability to offload event logs to any interested subscribers using WDM.
+ */
+#define WEAVE_CONFIG_EVENT_LOGGING_WDM_OFFLOAD 1
+
+/**
+ * WEAVE_CONFIG_EVENT_LOGGING_UTC_TIMESTAMPS
+ *
+ * Enable recording UTC timestamps.
+ */
+#define WEAVE_CONFIG_EVENT_LOGGING_UTC_TIMESTAMPS 1
+
+/**
+ * WEAVE_DEVICE_CONFIG_EVENT_LOGGING_DEBUG_BUFFER_SIZE
+ *
+ * A size, in bytes, of the individual debug event logging buffer.
+ */
+#define WEAVE_DEVICE_CONFIG_EVENT_LOGGING_DEBUG_BUFFER_SIZE (512)
 
 #endif // WEAVE_PROJECT_CONFIG_H
