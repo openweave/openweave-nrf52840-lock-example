@@ -78,6 +78,8 @@
  * WEAVE_DEVICE_CONFIG_DEVICE_FIRMWARE_REVISION
  *
  * A string identifying the firmware revision running on the device.
+ * Nest service currently expects the firmware version to be in the format
+ * {MAJOR_VERSION}.0d{MINOR_VERSION}
  */
 #ifndef WEAVE_DEVICE_CONFIG_DEVICE_FIRMWARE_REVISION
 #define WEAVE_DEVICE_CONFIG_DEVICE_FIRMWARE_REVISION "1.0d1"
