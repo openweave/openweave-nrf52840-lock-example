@@ -31,4 +31,4 @@ export NRF5_TOOLS_ROOT=${TRAVIS_BUILD_DIR}/nRF5x-Command-Line-Tools
 export GNU_INSTALL_ROOT=${TRAVIS_BUILD_DIR}/arm/gcc-arm-none-eabi-7-2018-q2-update/bin/
 
 # Build the example application.
-make -C ${TRAVIS_BUILD_DIR} || exit 1
+make -C ${TRAVIS_BUILD_DIR} DEVICE_FIRMWARE_REVISION=1.0d${TRAVIS_BUILD_NUMBER} || exit 1

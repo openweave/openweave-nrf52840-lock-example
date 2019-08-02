@@ -119,6 +119,7 @@ int AppTask::StartAppTask()
 int AppTask::Init()
 {
     ret_code_t ret;
+    WEAVE_ERROR err = WEAVE_NO_ERROR;
 
     // Initialize LEDs
     sStatusLED.Init(SYSTEM_STATE_LED);
@@ -192,6 +193,14 @@ int AppTask::Init()
 
     // Enable timer based Software Update Checks
     SoftwareUpdateMgr().SetQueryIntervalWindow(SWU_INTERVAl_WINDOW_MIN_MS, SWU_INTERVAl_WINDOW_MAX_MS);
+
+    // Print the current software version
+    char currentFirmwareRev[ConfigurationManager::kMaxFirmwareRevisionLength+1] = {0};
+    size_t currentFirmwareRevLen;
+    err = ConfigurationMgr().GetFirmwareRevision(currentFirmwareRev, sizeof(currentFirmwareRev), currentFirmwareRevLen);
+    APP_ERROR_CHECK(err);
+
+    NRF_LOG_INFO("Current Firmware Version: %s", currentFirmwareRev);
 
     return ret;
 }
@@ -609,6 +618,15 @@ void AppTask::HandleSoftwareUpdateEvent(void *apAppState,
 
         case SoftwareUpdateManager::kEvent_SoftwareUpdateAvailable:
         {
+            WEAVE_ERROR err;
+
+            char currentFirmwareRev[ConfigurationManager::kMaxFirmwareRevisionLength+1] = {0};
+            size_t currentFirmwareRevLen;
+            err = ConfigurationMgr().GetFirmwareRevision(currentFirmwareRev, sizeof(currentFirmwareRev), currentFirmwareRevLen);
+            APP_ERROR_CHECK(err);
+
+            NRF_LOG_INFO("Current Firmware Version: %s", currentFirmwareRev);
+
             NRF_LOG_INFO("Software Update Available - Priority: %d Condition: %d Version: %s IntegrityType: %d URI: %s",
                                                                                 aInParam.SoftwareUpdateAvailable.Priority,
                                                                                 aInParam.SoftwareUpdateAvailable.Condition,
