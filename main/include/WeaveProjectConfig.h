@@ -137,4 +137,13 @@
  */
 #define WEAVE_DEVICE_CONFIG_EVENT_LOGGING_DEBUG_BUFFER_SIZE (512)
 
+/**
+ * WEAVE_CONFIG_EVENT_LOGGING_DEFAULT_IMPORTANCE
+ *
+ * Set the default importance of events to be logged as Debug. Since debug is the lowest
+ * importance level, this means all standard, critical, info and debug importance level
+ * vi events get logged.
+ */
+#define WEAVE_CONFIG_EVENT_LOGGING_DEFAULT_IMPORTANCE nl::Weave::Profiles::DataManagement::Debug
+
 #endif // WEAVE_PROJECT_CONFIG_H
