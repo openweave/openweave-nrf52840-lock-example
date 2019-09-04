@@ -66,8 +66,6 @@ static bool sIsServiceSubscriptionEstablished = false;
 static bool sHaveBLEConnections               = false;
 static bool sHaveServiceConnectivity          = false;
 
-static char sPackageSpecification[] = "Lock Example";
-
 static nl::Weave::Platform::Security::SHA256 sSHA256;
 
 AppTask AppTask::sAppTask;
@@ -566,7 +564,7 @@ void AppTask::HandleSoftwareUpdateEvent(void *apAppState,
     {
         case SoftwareUpdateManager::kEvent_PrepareQuery:
         {
-            aOutParam.PrepareQuery.PackageSpecification = sPackageSpecification;
+            aOutParam.PrepareQuery.PackageSpecification = NULL;
             aOutParam.PrepareQuery.DesiredLocale = NULL;
             break;
         }
