@@ -28,7 +28,7 @@ void LEDWidget::Init(uint32_t gpioNum)
     mBlinkOnTimeMS    = 0;
     mBlinkOffTimeMS   = 0;
     mGPIONum          = gpioNum;
-    mState            = false;
+    mState            = true;
 
     nrf_gpio_cfg_output(gpioNum);
     Set(false);
@@ -75,6 +75,9 @@ void LEDWidget::Animate()
 
 void LEDWidget::DoSet(bool state)
 {
+    if (mState == state)
+        return;
+
     mState = state;
 
     if (state)
