@@ -22,9 +22,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// nRF SDK includes
+#include "app_timer.h"
+
 #include "AppEvent.h"
 
-class BoltLockManager
+class BoltLockManager : public AppEventDispatcher
 {
 public:
     enum Action_t
@@ -45,32 +48,33 @@ public:
 
     int Init();
     bool IsUnlocked();
-    void EnableAutoRelock(bool aOn);
+    void EvaluateChange(void);
+    void EnableAutoRelock(bool aEnable);
+    void EnableDoorCheck(bool aEnable);
     void SetAutoLockDuration(uint32_t aDurationInSecs);
     bool IsActionInProgress();
     bool InitiateAction(int32_t aActor, Action_t aAction);
 
-    typedef void (*Callback_fn_initiated)(Action_t, int32_t aActor);
-    typedef void (*Callback_fn_completed)(Action_t);
-    void SetCallbacks(Callback_fn_initiated aActionInitiated_CB, Callback_fn_completed aActionCompleted_CB);
+    void PostLockActionRequest(int32_t aActor, Action_t aAction);
 
 private:
     friend BoltLockManager & BoltLockMgr(void);
     State_t mState;
 
-    Callback_fn_initiated mActionInitiated_CB;
-    Callback_fn_completed mActionCompleted_CB;
-
-    bool mAutoRelock;
-    uint32_t mAutoLockDuration;
+    bool mAutoRelockEnabled;
+    bool mDoorCheckEnabled;
     bool mAutoLockTimerArmed;
 
-    void CancelTimer(void);
-    void StartTimer(uint32_t aTimeoutMs);
+    uint32_t mAutoLockDuration;
+
+    void CancelTimer(app_timer_id_t aTimer);
+    void StartTimer(app_timer_id_t aTimer, uint32_t aTimeoutMs);
 
     static void TimerEventHandler(void * p_context);
-    static void AutoReLockTimerEventHandler(AppEvent * aEvent);
-    static void ActuatorMovementTimerEventHandler(AppEvent *aEvent);
+    static void EvaluateAutoRelockState(const AppEvent * aEvent);
+    static void AutoReLockTimerEventHandler(const AppEvent * aEvent);
+    static void ActuatorMovementTimerEventHandler(const AppEvent *aEvent);
+    static void LockActionEventHandler(const AppEvent * aEvent);
 
     static BoltLockManager sLock;
 };

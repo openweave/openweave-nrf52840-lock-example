@@ -36,7 +36,6 @@ public:
     int StartAppTask();
     static void AppTaskMain(void * pvParameter);
 
-    void PostLockActionRequest(int32_t aActor, BoltLockManager::Action_t aAction);
     void PostEvent(const AppEvent * event);
 
 private:
@@ -44,25 +43,27 @@ private:
 
     int Init();
 
-    static void ActionInitiated(BoltLockManager::Action_t aAction, int32_t aActor);
-    static void ActionCompleted(BoltLockManager::Action_t aAction);
-
     void CancelTimer(void);
 
     void DispatchEvent(AppEvent * event);
 
-    static void FunctionTimerEventHandler(AppEvent * aEvent);
-    static void FunctionHandler(AppEvent * aEvent);
-    static void LockActionEventHandler(AppEvent * aEvent);
-    static void InstallEventHandler(AppEvent * aEvent);
+    static void SeachForLocalSDKOpenCloseSensors(intptr_t arg);
 
-    static void ButtonEventHandler(uint8_t pin_no, uint8_t button_action);
+    // Button Event Handlers
+    static void FunctionButtonHandler(const AppEvent * aEvent);
+    static void AttentionButtonHandler(const AppEvent * aEvent);
+
+    // Other Event Handler
+    static void LockActionEventHandler(const AppEvent * aEvent, intptr_t Arg);
+    static void FactoryResetTriggerTimerExpired(const AppEvent * aEvent);
+    static void InstallEventHandler(const AppEvent * aEvent);
     static void TimerEventHandler(void * p_context);
 
     static void HandleSoftwareUpdateEvent(void *apAppState,
                                           SoftwareUpdateManager::EventType aEvent,
                                           const SoftwareUpdateManager::InEventParam& aInParam,
                                           SoftwareUpdateManager::OutEventParam& aOutParam);
+
 
     void StartTimer(uint32_t aTimeoutInMs);
 
@@ -75,8 +76,7 @@ private:
         kFunction_Invalid
     } Function;
 
-    Function_t mFunction;
-    bool mFunctionTimerActive;
+    bool mFactoryResetTimerActive;
 
     static AppTask sAppTask;
 };

@@ -1,6 +1,6 @@
 /*
  *
- *    Copyright (c) 2018 Nest Labs, Inc.
+ *    Copyright (c) 2019 Google LLC.
  *    All rights reserved.
  *
  *    Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,8 +19,8 @@
 #ifndef APP_EVENT_H
 #define APP_EVENT_H
 
-struct AppEvent;
-typedef void (*EventHandler)(AppEvent *);
+#include <stdlib.h>
+#include "ButtonManager.h"
 
 struct AppEvent
 {
@@ -28,7 +28,11 @@ struct AppEvent
     {
         kEventType_Button = 0,
         kEventType_Timer,
-        kEventType_Lock,
+        kEventType_LockAction_Requested,
+        kEventType_LockAction_Initiated,
+        kEventType_LockAction_Completed,
+        kEventType_LocalDeviceDiscovered,
+        kEventType_AutoReLock_Evaluate,
         kEventType_Install,
     };
 
@@ -39,7 +43,7 @@ struct AppEvent
         struct
         {
             uint8_t PinNo;
-            uint8_t Action;
+            ButtonManager::ButtonAction Action;
         } ButtonEvent;
         struct
         {
@@ -49,10 +53,40 @@ struct AppEvent
         {
             uint8_t Action;
             int32_t Actor;
-        } LockEvent;
+        } LockAction_Requested, LockAction_Initiated;
+        struct
+        {
+            uint8_t Action;
+        } LockAction_Completed;
     };
 
+    typedef void (*EventHandler)(const AppEvent *);
     EventHandler Handler;
+};
+
+
+class AppEventDispatcher
+{
+
+public:
+    typedef void (*EventHandler)(const AppEvent *, intptr_t Arg);
+
+    struct EventHandler_t
+    {
+        EventHandler_t * Next;
+        EventHandler Handler;
+        intptr_t Arg;
+    };
+
+    // API to add or remove a button event handler.
+    int AddEventHandler(EventHandler Handler, intptr_t arg);
+    void RemoveEventHandler(EventHandler Handler, intptr_t arg);
+
+protected:
+    void DispatchEvent(const AppEvent * aEvent);
+
+    EventHandler_t * mAppEventHandlerList;
+
 };
 
 #endif // APP_EVENT_H

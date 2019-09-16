@@ -17,6 +17,7 @@
  */
 
 #include "BoltLockManager.h"
+#include "WDMFeature.h"
 
 #include "app_config.h"
 #include "app_timer.h"
@@ -29,13 +30,21 @@
 
 BoltLockManager BoltLockManager::sLock;
 
-APP_TIMER_DEF(sLockTimer);
+APP_TIMER_DEF(sLockActuationTimer);
+APP_TIMER_DEF(sAutoRelockTimer);
 
 int BoltLockManager::Init()
 {
     ret_code_t ret;
 
-    ret = app_timer_create(&sLockTimer, APP_TIMER_MODE_SINGLE_SHOT, TimerEventHandler);
+    ret = app_timer_create(&sLockActuationTimer, APP_TIMER_MODE_SINGLE_SHOT, TimerEventHandler);
+    if (ret != NRF_SUCCESS)
+    {
+        NRF_LOG_INFO("app_timer_create() failed");
+        APP_ERROR_HANDLER(ret);
+    }
+
+    ret = app_timer_create(&sAutoRelockTimer, APP_TIMER_MODE_SINGLE_SHOT, TimerEventHandler);
     if (ret != NRF_SUCCESS)
     {
         NRF_LOG_INFO("app_timer_create() failed");
@@ -44,17 +53,19 @@ int BoltLockManager::Init()
 
     mState = kState_LockingCompleted;
     mAutoLockTimerArmed = false;
-    mAutoRelock = false;
+
+#if WEAVE_DEVICE_CONFIG_DISABLE_ACCOUNT_PAIRING
+    mAutoRelockEnabled = AUTO_RELOCK_ENABLED_DEFAULT;
+    mAutoLockDuration = AUTO_LOCK_DURATION_SECS_DEFAULT;
+    mDoorCheckEnabled = DOOR_CHECK_ENABLE_DEFAULT;
+#else
+    mAutoRelockEnabled = false;
     mAutoLockDuration = 0;
+    mDoorCheckEnabled = false;
+#endif
+    ButtonMgr().AddButtonEventHandler(LOCK_BUTTON, LockActionEventHandler);
 
     return ret;
-}
-
-void BoltLockManager::SetCallbacks(Callback_fn_initiated aActionInitiated_CB,
-                              Callback_fn_completed aActionCompleted_CB)
-{
-    mActionInitiated_CB = aActionInitiated_CB;
-    mActionCompleted_CB = aActionCompleted_CB;
 }
 
 bool BoltLockManager::IsActionInProgress()
@@ -67,9 +78,14 @@ bool BoltLockManager::IsUnlocked()
     return (mState == kState_UnlockingCompleted) ? true : false;
 }
 
-void BoltLockManager::EnableAutoRelock(bool aOn)
+void BoltLockManager::EnableAutoRelock(bool aEnable)
 {
-    mAutoRelock = aOn;
+    mAutoRelockEnabled = aEnable;
+}
+
+void BoltLockManager::EnableDoorCheck(bool aEnable)
+{
+    mDoorCheckEnabled = aEnable;
 }
 
 void BoltLockManager::SetAutoLockDuration(uint32_t aDurationInSecs)
@@ -102,29 +118,30 @@ bool BoltLockManager::InitiateAction(int32_t aActor, Action_t aAction)
         {
             // If auto lock timer has been armed and someone initiates locking,
             // cancel the timer and continue as normal.
-            mAutoLockTimerArmed = false;
+            CancelTimer(sAutoRelockTimer);
 
-            CancelTimer();
+            mAutoLockTimerArmed = false;
         }
 
-        StartTimer(ACTUATOR_MOVEMENT_PERIOS_MS);
+        StartTimer(sLockActuationTimer, ACTUATOR_MOVEMENT_PERIOS_MS);
 
         // Since the timer started successfully, update the state and trigger callback
         mState = new_state;
 
-        if (mActionInitiated_CB)
-        {
-            mActionInitiated_CB(aAction, aActor);
-        }
+        AppEvent event;
+        event.Type = AppEvent::kEventType_LockAction_Initiated;
+        event.LockAction_Initiated.Action = aAction;
+        event.LockAction_Initiated.Actor  = aActor;
+        DispatchEvent(&event);
     }
 
     return action_initiated;
 }
 
-void BoltLockManager::StartTimer(uint32_t aTimeoutMs)
+void BoltLockManager::StartTimer(app_timer_id_t aTimer, uint32_t aTimeoutMs)
 {
     ret_code_t ret;
-    ret = app_timer_start(sLockTimer, pdMS_TO_TICKS(aTimeoutMs), this);
+    ret = app_timer_start(aTimer, pdMS_TO_TICKS(aTimeoutMs), this);
     if (ret != NRF_SUCCESS)
     {
         NRF_LOG_INFO("app_timer_start() failed");
@@ -132,10 +149,10 @@ void BoltLockManager::StartTimer(uint32_t aTimeoutMs)
     }
 }
 
-void BoltLockManager::CancelTimer(void)
+void BoltLockManager::CancelTimer(app_timer_id_t aTimer)
 {
     ret_code_t ret;
-    ret = app_timer_stop(sLockTimer);
+    ret = app_timer_stop(aTimer);
     if (ret != NRF_SUCCESS)
     {
         NRF_LOG_INFO("app_timer_stop() failed");
@@ -164,7 +181,7 @@ void BoltLockManager::TimerEventHandler(void * p_context)
     GetAppTask().PostEvent(&event);
 }
 
-void BoltLockManager::AutoReLockTimerEventHandler(AppEvent * aEvent)
+void BoltLockManager::AutoReLockTimerEventHandler(const AppEvent * aEvent)
 {
     BoltLockManager * lock = static_cast<BoltLockManager *>(aEvent->TimerEvent.Context);
     int32_t actor = Schema::Weave::Trait::Security::BoltLockTrait::BOLT_LOCK_ACTOR_METHOD_LOCAL_IMPLICIT;
@@ -182,7 +199,7 @@ void BoltLockManager::AutoReLockTimerEventHandler(AppEvent * aEvent)
     lock->InitiateAction(actor, LOCK_ACTION);
 }
 
-void BoltLockManager::ActuatorMovementTimerEventHandler(AppEvent * aEvent)
+void BoltLockManager::ActuatorMovementTimerEventHandler(const AppEvent * aEvent)
 {
     Action_t actionCompleted = INVALID_ACTION;
 
@@ -201,19 +218,128 @@ void BoltLockManager::ActuatorMovementTimerEventHandler(AppEvent * aEvent)
 
     if (actionCompleted != INVALID_ACTION)
     {
-        if (lock->mActionCompleted_CB)
+        AppEvent event;
+        event.Type = AppEvent::kEventType_LockAction_Completed;
+        event.LockAction_Completed.Action = actionCompleted;
+        lock->DispatchEvent(&event);
+
+        // If we are about to finish unlocking, evaluate the auto lock
+        // state.
+        if (actionCompleted == UNLOCK_ACTION)
+            lock->EvaluateAutoRelockState(NULL);
+    }
+}
+
+void BoltLockManager::PostLockActionRequest(int32_t aActor, Action_t aAction)
+{
+    AppEvent event;
+
+    event.Type                          = AppEvent::kEventType_LockAction_Requested;
+    event.LockAction_Requested.Actor    = aActor;
+    event.LockAction_Requested.Action   = aAction;
+    event.Handler                       = LockActionEventHandler;
+
+    GetAppTask().PostEvent(&event);
+}
+
+void BoltLockManager::LockActionEventHandler(const AppEvent * aEvent)
+{
+    bool initiated = false;
+    BoltLockManager::Action_t action;
+    int32_t actor;
+    ret_code_t ret = NRF_SUCCESS;
+
+    if (aEvent->Type == AppEvent::kEventType_LockAction_Requested)
+    {
+        action = static_cast<BoltLockManager::Action_t>(aEvent->LockAction_Requested.Action);
+        actor  = aEvent->LockAction_Requested.Actor;
+    }
+    else if (aEvent->Type == AppEvent::kEventType_Button && aEvent->ButtonEvent.Action == ButtonManager::kButtonAction_Release)
+    {
+        if (BoltLockMgr().IsUnlocked())
         {
-            lock->mActionCompleted_CB(actionCompleted);
+            action = BoltLockManager::LOCK_ACTION;
+        }
+        else
+        {
+            action = BoltLockManager::UNLOCK_ACTION;
         }
 
-        if (lock->mAutoRelock && actionCompleted == UNLOCK_ACTION)
+        actor = Schema::Weave::Trait::Security::BoltLockTrait::BOLT_LOCK_ACTOR_METHOD_PHYSICAL;
+    }
+    else
+    {
+        ret = NRF_ERROR_NULL;
+    }
+
+    if (ret == NRF_SUCCESS)
+    {
+        initiated = BoltLockMgr().InitiateAction(actor, action);
+
+        if (!initiated)
         {
-            // Start the timer for auto relock
-            lock->StartTimer(lock->mAutoLockDuration * 1000);
-
-            lock->mAutoLockTimerArmed = true;
-
-            NRF_LOG_INFO("Auto Re-lock enabled. Will be triggered in %u seconds", lock->mAutoLockDuration);
+            NRF_LOG_INFO("Action is already in progress or active.");
         }
     }
+}
+
+void BoltLockManager::EvaluateAutoRelockState(const AppEvent * aEvent)
+{
+    BoltLockManager & lock = static_cast<BoltLockManager &>(BoltLockMgr());
+
+    // Check to see if auto relock is enabled and that the door is unlocked
+    if (lock.mAutoRelockEnabled && lock.mState == kState_UnlockingCompleted)
+    {
+        // Check to see that the subscription to device is valid
+        if (lock.mDoorCheckEnabled && WdmFeature().IsDeviceSubscriptionEstablished())
+        {
+            // Check to see if door is closed and that a timer is already not armed
+            if (!WdmFeature().GetSecurityOpenCloseTraitDataSink().IsOpen())
+            {
+                // Check to see if the timer is already not armed.
+                if (!lock.mAutoLockTimerArmed)
+                {
+                    // If device subscription is established and door is closed
+                    // Start the timer for auto relock
+                    lock.StartTimer(sAutoRelockTimer, lock.mAutoLockDuration * 1000);
+
+                    lock.mAutoLockTimerArmed = true;
+
+                    NRF_LOG_INFO("Associated O/C Sensor State is CLOSED. Auto Re-lock will be triggered " \
+                                 "in %u seconds", lock.mAutoLockDuration);
+                }
+            }
+            else
+            {
+                // If the state is open then we cancel the autolock timer.
+                lock.CancelTimer(sAutoRelockTimer);
+                lock.mAutoLockTimerArmed = false;
+
+                NRF_LOG_INFO("Associated O/C Sensor State is OPEN. Auto Re-lock suspended.");
+            }
+        }
+        else
+        {
+            // If subscription to device has not been established or if door check is disabled,
+            // start the auto relock timer only if it hadn't already been started.
+            if (!lock.mAutoLockTimerArmed)
+            {
+                // If device subscription is not valid or not established
+                lock.StartTimer(sAutoRelockTimer, lock.mAutoLockDuration * 1000);
+
+                lock.mAutoLockTimerArmed = true;
+
+                NRF_LOG_INFO("Auto Re-lock will be triggered in %u seconds", lock.mAutoLockDuration);
+            }
+        }
+    }
+}
+
+void BoltLockManager::EvaluateChange(void)
+{
+    AppEvent event;
+    event.Type = AppEvent::kEventType_AutoReLock_Evaluate;
+    event.Handler = EvaluateAutoRelockState;
+
+    GetAppTask().PostEvent(&event);
 }

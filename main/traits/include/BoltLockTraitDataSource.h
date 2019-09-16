@@ -25,6 +25,7 @@
 #ifndef BOLT_LOCK_TRAIT_DATA_SOURCE_H
 #define BOLT_LOCK_TRAIT_DATA_SOURCE_H
 
+#include "AppEvent.h"
 #include <Weave/Profiles/data-management/DataManagement.h>
 
 class BoltLockTraitDataSource : public nl::Weave::Profiles::DataManagement::TraitDataSource
@@ -32,6 +33,7 @@ class BoltLockTraitDataSource : public nl::Weave::Profiles::DataManagement::Trai
 public:
     BoltLockTraitDataSource();
 
+    void Init();
     bool IsLocked();
     void InitiateLock(int32_t aLockActor);
     void InitiateUnlock(int32_t aLockActor);
@@ -48,6 +50,7 @@ private:
                          const int64_t & aExpiryTimeMicroSecond, const bool aIsMustBeVersionValid, const uint64_t & aMustBeVersion,
                          nl::Weave::TLV::TLVReader & aArgumentReader);
 
+    static void LockActionEventHandler(const AppEvent * aEvent, intptr_t Arg);
     int32_t mLockedState;
     int32_t mLockActor;
     int32_t mActuatorState;

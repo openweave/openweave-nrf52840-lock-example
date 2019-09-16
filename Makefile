@@ -35,16 +35,22 @@ APP = openweave-nrf52840-lock-example
 
 SRCS = \
     $(PROJECT_ROOT)/main/main.cpp \
+    $(PROJECT_ROOT)/main/AppEvent.cpp \
     $(PROJECT_ROOT)/main/AppTask.cpp \
+    $(PROJECT_ROOT)/main/DeviceDiscovery.cpp \
     $(PROJECT_ROOT)/main/LEDWidget.cpp \
     $(PROJECT_ROOT)/main/BoltLockManager.cpp \
+    $(PROJECT_ROOT)/main/ButtonManager.cpp \
     $(PROJECT_ROOT)/main/WDMFeature.cpp \
     $(PROJECT_ROOT)/main/traits/BoltLockTraitDataSource.cpp \
     $(PROJECT_ROOT)/main/traits/BoltLockSettingsTraitDataSink.cpp \
     $(PROJECT_ROOT)/main/traits/DeviceIdentityTraitDataSource.cpp \
+    $(PROJECT_ROOT)/main/traits/SecurityOpenCloseTraitDataSink.cpp \
     $(PROJECT_ROOT)/main/schema/BoltLockTrait.cpp \
     $(PROJECT_ROOT)/main/schema/BoltLockSettingsTrait.cpp \
     $(PROJECT_ROOT)/main/schema/DeviceIdentityTrait.cpp \
+    $(PROJECT_ROOT)/main/schema/OpenCloseTrait.cpp \
+    $(PROJECT_ROOT)/main/schema/SecurityOpenCloseTrait.cpp \
     $(PROJECT_ROOT)/main/support/CXXExceptionStubs.cpp \
     $(PROJECT_ROOT)/main/support/nRF5Sbrk.c \
     $(PROJECT_ROOT)/main/support/FreeRTOSNewlibLockSupport.c \

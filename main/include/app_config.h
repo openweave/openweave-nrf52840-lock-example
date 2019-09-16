@@ -109,15 +109,28 @@
 #define BUTTON_ENABLED 1
 
 #define GPIOTE_ENABLED 1
-#define GPIOTE_CONFIG_NUM_OF_LOW_POWER_EVENTS 2
+#define GPIOTE_CONFIG_NUM_OF_LOW_POWER_EVENTS 4
 
-#define APP_TIMER_CONFIG_OP_QUEUE_SIZE 10
+#define APP_TIMER_CONFIG_OP_QUEUE_SIZE 20
 
 // ---- Lock Example App Config ----
 
+#define SERVICELESS_DEVICE_DISCOVERY_ENABLED    0
+#define WEAVE_DEVICE_CONFIG_DISABLE_ACCOUNT_PAIRING     SERVICELESS_DEVICE_DISCOVERY_ENABLED
+
+// If account pairing is disabled, device will not be able to subscribe to service.
+// Defaults provided for auto relock enable and auto lock duration
+#if WEAVE_DEVICE_CONFIG_DISABLE_ACCOUNT_PAIRING
+#define AUTO_RELOCK_ENABLED_DEFAULT             1
+#define AUTO_LOCK_DURATION_SECS_DEFAULT         10
+#define DOOR_CHECK_ENABLE_DEFAULT               1
+#endif
+
+#define ATTENTION_BUTTON                        BUTTON_3
 #define LOCK_BUTTON                             BUTTON_2
 #define FUNCTION_BUTTON                         BUTTON_1
 #define FUNCTION_BUTTON_DEBOUNCE_PERIOD_MS      50
+#define LONG_PRESS_TIMEOUT_MS                   (3000)
 
 #define SYSTEM_STATE_LED                        BSP_LED_0
 #define LOCK_STATE_LED                          BSP_LED_1
@@ -127,12 +140,83 @@
 #define ACTUATOR_MOVEMENT_PERIOS_MS             2000
 
 // ---- Lock Example SWU Config ----
-#define SWU_INTERVAl_WINDOW_MIN_MS				(23*60*60*1000) // 23 hours
-#define SWU_INTERVAl_WINDOW_MAX_MS				(24*60*60*1000) // 24 hours
+#define SWU_INTERVAl_WINDOW_MIN_MS              (23*60*60*1000) // 23 hours
+#define SWU_INTERVAl_WINDOW_MAX_MS              (24*60*60*1000) // 24 hours
 
 // ---- Thread Polling Config ----
 #define THREAD_ACTIVE_POLLING_INTERVAL_MS       100
 #define THREAD_INACTIVE_POLLING_INTERVAL_MS     1000
 
+// ---- Device to Service Subscription Config ----
+
+/** Defines the timeout for liveness between the service and the device.
+ *  For sleepy end node devices, this timeout will be much larger than the current
+ *  value to preserve battery.
+ */
+#define SERVICE_LIVENESS_TIMEOUT_SEC            60 * 1 // 1 minute
+
+/** Defines the timeout for a response to any message initiated by the device to the service.
+ *  This includes notifies, subscribe confirms, cancels and updates.
+ *  This timeout is kept SERVICE_WRM_MAX_RETRANS x SERVICE_WRM_INITIAL_RETRANS_TIMEOUT_MS + some buffer
+ *  to account for latency in the message transmission through multiple hops.
+ */
+#define SERVICE_MESSAGE_RESPONSE_TIMEOUT_MS     10000
+
+/** Defines the timeout for a message to get retransmitted when no wrm ack or
+ *  response has been heard back from the service. This timeout is kept larger
+ *  for now since the message has to travel through multiple hops and service
+ *  layers before actually making it to the actual receiver.
+ *  @note
+ *    WRM has an initial and active retransmission timeouts to interact with
+ *    sleepy destination nodes.
+ */
+#define SERVICE_WRM_INITIAL_RETRANS_TIMEOUT_MS  2500
+
+#define SERVICE_WRM_ACTIVE_RETRANS_TIMEOUT_MS   2500
+
+/** Define the maximum number of retransmissions in WRM
+ */
+#define SERVICE_WRM_MAX_RETRANS                 3
+
+/** Define the timeout for piggybacking a WRM acknowledgment message
+ */
+#define SERVICE_WRM_PIGGYBACK_ACK_TIMEOUT_MS    200
+
+/** Defines the timeout for expecting a subscribe response after sending a subscribe request.
+ *  This is meant to be a gross timeout - the MESSAGE_RESPONSE_TIMEOUT_MS will usually trip first
+ *  to catch timeouts for each message in the subscribe request exchange.
+ *  SUBSCRIPTION_RESPONSE_TIMEOUT_MS > Average no. of notifies during a subscription * MESSAGE_RESPONSE_TIMEOUT_MS
+ */
+#define SUBSCRIPTION_RESPONSE_TIMEOUT_MS        40000
+
+// ---- Device to Device Subscription Config ----
+
+/** Defines the timeout for liveness between the initiating device and the publishing device.
+ *  For sleepy end node devices, this timeout may be much larger than the current
+ *  value to preserve battery.
+ */
+#define DEVICE_LIVENESS_TIMEOUT_SEC             10 // 10 seconds
+
+/** Defines the timeout for a response to any message sent by initiating device to the publishing device.
+ *  This includes notifies, subscribe confirms, cancels and updates.
+ *  This timeout is kept SERVICE_WRM_MAX_RETRANS x SERVICE_WRM_INITIAL_RETRANS_TIMEOUT_MS + some buffer
+ *  to account for latency in the message transmission through multiple hops.
+ */
+#define DEVICE_MESSAGE_RESPONSE_TIMEOUT_MS      3000
+
+/** Defines the timeout for a message to get retransmitted when no wrm ack or
+ *  response has been heard back from the publishing device.
+ */
+#define DEVICE_WRM_INITIAL_RETRANS_TIMEOUT_MS   800
+
+#define DEVICE_WRM_ACTIVE_RETRANS_TIMEOUT_MS    500
+
+/** Define the maximum number of retransmissions in WRM
+ */
+#define DEVICE_WRM_MAX_RETRANS                  3
+
+/** Define the timeout for piggybacking a WRM acknowledgment message
+ */
+#define DEVICE_WRM_PIGGYBACK_ACK_TIMEOUT_MS     200
 
 #endif //APP_CONFIG_H

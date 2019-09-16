@@ -18,6 +18,8 @@
 
 #include "AppTask.h"
 #include "AppEvent.h"
+#include "ButtonManager.h"
+#include "DeviceDiscovery.h"
 #include "WDMFeature.h"
 #include "LEDWidget.h"
 
@@ -34,13 +36,11 @@
 
 #include <Weave/Profiles/WeaveProfiles.h>
 #include <Weave/Support/crypto/HashAlgos.h>
-#include <Weave/DeviceLayer/SoftwareUpdateManager.h>
 
 using namespace ::nl::Weave::TLV;
 using namespace ::nl::Weave::DeviceLayer;
 using namespace ::nl::Weave::Profiles::SoftwareUpdate;
 
-#define FACTORY_RESET_TRIGGER_TIMEOUT       3000
 #define FACTORY_RESET_CANCEL_WINDOW_TIMEOUT 3000
 #define APP_TASK_STACK_SIZE                 (4096)
 #define APP_TASK_PRIORITY                   2
@@ -53,9 +53,24 @@ static SemaphoreHandle_t sWeaveEventLock;
 static TaskHandle_t sAppTaskHandle;
 static QueueHandle_t sAppEventQueue;
 
+/* Shows the system status (service provisioned,
+ * service subscription establishment)
+ */
 static LEDWidget sStatusLED;
+
+/* Shows the lock/unlock state:
+ * Solid LED -> Locked
+ * Off -> Unlocked
+ * Blinking -> Actuator moving/In progress
+ */
 static LEDWidget sLockLED;
-static LEDWidget sUnusedLED;
+
+/* Shows the state of device subscription:
+ * Off: Not subscribed to another device
+ * Solid: Subscription established
+ */
+static LEDWidget sDeviceSubStatusLED;
+
 static LEDWidget sUnusedLED_1;
 
 static bool sIsThreadProvisioned              = false;
@@ -63,6 +78,7 @@ static bool sIsThreadEnabled                  = false;
 static bool sIsThreadAttached                 = false;
 static bool sIsPairedToAccount                = false;
 static bool sIsServiceSubscriptionEstablished = false;
+static bool sIsDeviceSubscriptionEstablished  = false;
 static bool sHaveBLEConnections               = false;
 static bool sHaveServiceConnectivity          = false;
 
@@ -125,28 +141,8 @@ int AppTask::Init()
     sLockLED.Init(LOCK_STATE_LED);
     sLockLED.Set(!BoltLockMgr().IsUnlocked());
 
-    sUnusedLED.Init(BSP_LED_2);
+    sDeviceSubStatusLED.Init(BSP_LED_2);
     sUnusedLED_1.Init(BSP_LED_3);
-
-    // Initialize buttons
-    static app_button_cfg_t sButtons[] = {
-        { LOCK_BUTTON, APP_BUTTON_ACTIVE_LOW, BUTTON_PULL, ButtonEventHandler },
-        { FUNCTION_BUTTON, APP_BUTTON_ACTIVE_LOW, BUTTON_PULL, ButtonEventHandler },
-    };
-
-    ret = app_button_init(sButtons, ARRAY_SIZE(sButtons), pdMS_TO_TICKS(FUNCTION_BUTTON_DEBOUNCE_PERIOD_MS));
-    if (ret != NRF_SUCCESS)
-    {
-        NRF_LOG_INFO("app_button_init() failed");
-        APP_ERROR_HANDLER(ret);
-    }
-
-    ret = app_button_enable();
-    if (ret != NRF_SUCCESS)
-    {
-        NRF_LOG_INFO("app_button_enable() failed");
-        APP_ERROR_HANDLER(ret);
-    }
 
     // Initialize Timer for Function Selection
     ret = app_timer_init();
@@ -163,6 +159,19 @@ int AppTask::Init()
         APP_ERROR_HANDLER(ret);
     }
 
+    ret = ButtonMgr().Init();
+    if (ret != NRF_SUCCESS)
+    {
+        NRF_LOG_INFO("ButtonMgr().Init() failed");
+        APP_ERROR_HANDLER(ret);
+    }
+
+#if SERVICELESS_DEVICE_DISCOVERY_ENABLED
+    ButtonMgr().AddButtonEventHandler(ATTENTION_BUTTON, AttentionButtonHandler);
+#endif
+
+    ButtonMgr().AddButtonEventHandler(FUNCTION_BUTTON,  FunctionButtonHandler);
+
     ret = BoltLockMgr().Init();
     if (ret != NRF_SUCCESS)
     {
@@ -170,7 +179,7 @@ int AppTask::Init()
         APP_ERROR_HANDLER(ret);
     }
 
-    BoltLockMgr().SetCallbacks(ActionInitiated, ActionCompleted);
+    BoltLockMgr().AddEventHandler(LockActionEventHandler, 0);
 
     sWeaveEventLock = xSemaphoreCreateMutex();
     if (sWeaveEventLock == NULL)
@@ -197,6 +206,13 @@ int AppTask::Init()
     size_t currentFirmwareRevLen;
     err = ConfigurationMgr().GetFirmwareRevision(currentFirmwareRev, sizeof(currentFirmwareRev), currentFirmwareRevLen);
     APP_ERROR_CHECK(err);
+
+    ret = DeviceDiscoveryFeature().Init();
+    if (ret != WEAVE_NO_ERROR)
+    {
+        NRF_LOG_INFO("DeviceDiscoveryFeature().Init() failed");
+        APP_ERROR_HANDLER(ret);
+    }
 
     NRF_LOG_INFO("Current Firmware Version: %s", currentFirmwareRev);
 
@@ -238,6 +254,7 @@ void AppTask::AppTaskMain(void * pvParameter)
             sIsPairedToAccount                = ConfigurationMgr().IsPairedToAccount();
             sHaveServiceConnectivity          = ConnectivityMgr().HaveServiceConnectivity();
             sIsServiceSubscriptionEstablished = WdmFeature().AreServiceSubscriptionsEstablished();
+            sIsDeviceSubscriptionEstablished  = WdmFeature().IsDeviceSubscriptionEstablished();
             PlatformMgr().UnlockWeaveStack();
         }
 
@@ -257,7 +274,7 @@ void AppTask::AppTaskMain(void * pvParameter)
         // rate of 100ms.
         //
         // Otherwise, blink the LED ON for a very short time.
-        if (sAppTask.mFunction != kFunction_FactoryReset)
+        if (!sAppTask.mFactoryResetTimerActive)
         {
             if (isFullyConnected)
             {
@@ -275,174 +292,89 @@ void AppTask::AppTaskMain(void * pvParameter)
             {
                 sStatusLED.Blink(50, 950);
             }
+
+            // Show the status of device subscription.
+            sDeviceSubStatusLED.Set(sIsDeviceSubscriptionEstablished);
         }
 
         sStatusLED.Animate();
         sLockLED.Animate();
-        sUnusedLED.Animate();
+        sDeviceSubStatusLED.Animate();
         sUnusedLED_1.Animate();
+        ButtonMgr().Poll();
     }
-}
-
-void AppTask::LockActionEventHandler(AppEvent * aEvent)
-{
-    bool initiated = false;
-    BoltLockManager::Action_t action;
-    int32_t actor;
-    ret_code_t ret = NRF_SUCCESS;
-
-    if (aEvent->Type == AppEvent::kEventType_Lock)
-    {
-        action = static_cast<BoltLockManager::Action_t>(aEvent->LockEvent.Action);
-        actor  = aEvent->LockEvent.Actor;
-    }
-    else if (aEvent->Type == AppEvent::kEventType_Button)
-    {
-        if (BoltLockMgr().IsUnlocked())
-        {
-            action = BoltLockManager::LOCK_ACTION;
-        }
-        else
-        {
-            action = BoltLockManager::UNLOCK_ACTION;
-        }
-
-        actor = Schema::Weave::Trait::Security::BoltLockTrait::BOLT_LOCK_ACTOR_METHOD_PHYSICAL;
-    }
-    else
-    {
-        ret = NRF_ERROR_NULL;
-    }
-
-    if (ret == NRF_SUCCESS)
-    {
-        initiated = BoltLockMgr().InitiateAction(actor, action);
-
-        if (!initiated)
-        {
-            NRF_LOG_INFO("Action is already in progress or active.");
-        }
-    }
-}
-
-void AppTask::ButtonEventHandler(uint8_t pin_no, uint8_t button_action)
-{
-    if (pin_no != LOCK_BUTTON && pin_no != FUNCTION_BUTTON)
-    {
-        return;
-    }
-
-    AppEvent button_event;
-    button_event.Type               = AppEvent::kEventType_Button;
-    button_event.ButtonEvent.PinNo  = pin_no;
-    button_event.ButtonEvent.Action = button_action;
-
-    if (pin_no == LOCK_BUTTON && button_action == APP_BUTTON_PUSH)
-    {
-        button_event.Handler = LockActionEventHandler;
-    }
-    else if (pin_no == FUNCTION_BUTTON)
-    {
-        button_event.Handler = FunctionHandler;
-    }
-
-    sAppTask.PostEvent(&button_event);
 }
 
 void AppTask::TimerEventHandler(void * p_context)
 {
-    AppEvent event;
-    event.Type               = AppEvent::kEventType_Timer;
-    event.TimerEvent.Context = p_context;
-    event.Handler            = FunctionTimerEventHandler;
-    sAppTask.PostEvent(&event);
+    if (sAppTask.mFactoryResetTimerActive)
+    {
+        AppEvent event;
+        event.Type               = AppEvent::kEventType_Timer;
+        event.TimerEvent.Context = p_context;
+        event.Handler            = FactoryResetTriggerTimerExpired;
+        sAppTask.PostEvent(&event);
+    }
 }
 
-void AppTask::FunctionTimerEventHandler(AppEvent * aEvent)
+void AppTask::FactoryResetTriggerTimerExpired(const AppEvent * aEvent)
 {
-    if (aEvent->Type != AppEvent::kEventType_Timer)
-        return;
+    sAppTask.mFactoryResetTimerActive = false;
 
-    // If we reached here, the button was held past FACTORY_RESET_TRIGGER_TIMEOUT, initiate factory reset
-    if (sAppTask.mFunctionTimerActive && sAppTask.mFunction == kFunction_SoftwareUpdate)
+    // Actually trigger Factory Reset
+    nl::Weave::DeviceLayer::ConfigurationMgr().InitiateFactoryReset();
+}
+
+void AppTask::FunctionButtonHandler(const AppEvent * aEvent)
+{
+    // To trigger software update: press the FUNCTION_BUTTON button briefly (< LONG_PRESS_TIMEOUT_MS)
+    // To initiate factory reset: press the FUNCTION_BUTTON for LONG_PRESS_TIMEOUT_MS + FACTORY_RESET_CANCEL_WINDOW_TIMEOUT
+    // All LEDs start blinking after LONG_PRESS_TIMEOUT_MS to signal factory reset has been initiated.
+    // To cancel factory reset: release the FUNCTION_BUTTON once all LEDs start blinking within the
+    // FACTORY_RESET_CANCEL_WINDOW_TIMEOUT
+
+    if (aEvent->ButtonEvent.Action == ButtonManager::kButtonAction_Release)
     {
-        NRF_LOG_INFO("Factory Reset Triggered. Release button within %ums to cancel.", FACTORY_RESET_TRIGGER_TIMEOUT);
+        if (SoftwareUpdateMgr().IsInProgress())
+        {
+            NRF_LOG_INFO("Canceling In Progress Software Update");
+            SoftwareUpdateMgr().Abort();
+        }
+        else
+        {
+            NRF_LOG_INFO("Manual Software Update Triggered");
+            SoftwareUpdateMgr().CheckNow();
+        }
+    }
+    else if (aEvent->ButtonEvent.Action == ButtonManager::kButtonAction_LongPress)
+    {
+        NRF_LOG_INFO("Factory Reset Triggered. Release button within %ums to cancel.", FACTORY_RESET_CANCEL_WINDOW_TIMEOUT);
 
         // Start timer for FACTORY_RESET_CANCEL_WINDOW_TIMEOUT to allow user to cancel, if required.
         sAppTask.StartTimer(FACTORY_RESET_CANCEL_WINDOW_TIMEOUT);
-
-        sAppTask.mFunction = kFunction_FactoryReset;
 
         // Turn off all LEDs before starting blink to make sure blink is co-ordinated.
         sStatusLED.Set(false);
         sLockLED.Set(false);
         sUnusedLED_1.Set(false);
-        sUnusedLED.Set(false);
+        sDeviceSubStatusLED.Set(false);
 
         sStatusLED.Blink(500);
         sLockLED.Blink(500);
-        sUnusedLED.Blink(500);
+        sDeviceSubStatusLED.Blink(500);
         sUnusedLED_1.Blink(500);
     }
-    else if (sAppTask.mFunctionTimerActive && sAppTask.mFunction == kFunction_FactoryReset)
+    else if (aEvent->ButtonEvent.Action == ButtonManager::kButtonAction_LongPress_Release && sAppTask.mFactoryResetTimerActive)
     {
-        // Actually trigger Factory Reset
-        nl::Weave::DeviceLayer::ConfigurationMgr().InitiateFactoryReset();
-    }
-}
+        sDeviceSubStatusLED.Set(false);
+        sUnusedLED_1.Set(false);
 
-void AppTask::FunctionHandler(AppEvent * aEvent)
-{
-    if (aEvent->ButtonEvent.PinNo != FUNCTION_BUTTON)
-        return;
+        // Set lock status LED back to show state of lock.
+        sLockLED.Set(!BoltLockMgr().IsUnlocked());
 
-    // To trigger software update: press the FUNCTION_BUTTON button briefly (< FACTORY_RESET_TRIGGER_TIMEOUT)
-    // To initiate factory reset: press the FUNCTION_BUTTON for FACTORY_RESET_TRIGGER_TIMEOUT + FACTORY_RESET_CANCEL_WINDOW_TIMEOUT
-    // All LEDs start blinking after FACTORY_RESET_TRIGGER_TIMEOUT to signal factory reset has been initiated.
-    // To cancel factory reset: release the FUNCTION_BUTTON once all LEDs start blinking within the
-    // FACTORY_RESET_CANCEL_WINDOW_TIMEOUT
-    if (aEvent->ButtonEvent.Action == APP_BUTTON_PUSH)
-    {
-        if (!sAppTask.mFunctionTimerActive && sAppTask.mFunction == kFunction_NoneSelected)
-        {
-            sAppTask.StartTimer(FACTORY_RESET_TRIGGER_TIMEOUT);
+        sAppTask.CancelTimer();
 
-            sAppTask.mFunction = kFunction_SoftwareUpdate;
-        }
-    }
-    else
-    {
-        // If the button was released before factory reset got initiated, trigger a software update.
-        if (sAppTask.mFunctionTimerActive && sAppTask.mFunction == kFunction_SoftwareUpdate)
-        {
-            sAppTask.CancelTimer();
-
-            if (SoftwareUpdateMgr().IsInProgress())
-            {
-                NRF_LOG_INFO("Canceling In Progress Software Update");
-                SoftwareUpdateMgr().Abort();
-            }
-            else
-            {
-                NRF_LOG_INFO("Manual Software Update Triggered");
-                SoftwareUpdateMgr().CheckNow();
-            }
-        }
-        else if (sAppTask.mFunctionTimerActive && sAppTask.mFunction == kFunction_FactoryReset)
-        {
-            sUnusedLED.Set(false);
-            sUnusedLED_1.Set(false);
-
-            // Set lock status LED back to show state of lock.
-            sLockLED.Set(!BoltLockMgr().IsUnlocked());
-
-            sAppTask.CancelTimer();
-
-            // Change the function to none selected since factory reset has been canceled.
-            sAppTask.mFunction = kFunction_NoneSelected;
-
-            NRF_LOG_INFO("Factory Reset has been Canceled");
-        }
+        NRF_LOG_INFO("Factory Reset has been Canceled");
     }
 }
 
@@ -457,7 +389,7 @@ void AppTask::CancelTimer()
         APP_ERROR_HANDLER(ret);
     }
 
-    mFunctionTimerActive = false;
+    mFactoryResetTimerActive = false;
 }
 
 void AppTask::StartTimer(uint32_t aTimeoutInMs)
@@ -467,62 +399,43 @@ void AppTask::StartTimer(uint32_t aTimeoutInMs)
     ret = app_timer_start(sFunctionTimer, pdMS_TO_TICKS(aTimeoutInMs), this);
     if (ret != NRF_SUCCESS)
     {
-        NRF_LOG_INFO("app_timer_start() failed");
-        APP_ERROR_HANDLER(ret);
+        NRF_LOG_INFO("app_timer_start() failed")
+;        APP_ERROR_HANDLER(ret);
     }
 
-    mFunctionTimerActive = true;
+    mFactoryResetTimerActive = true;
 }
 
-void AppTask::ActionInitiated(BoltLockManager::Action_t aAction, int32_t aActor)
+void AppTask::LockActionEventHandler(const AppEvent * aEvent, intptr_t Arg)
 {
-    // If the action has been initiated by the lock, update the bolt lock trait
-    // and start flashing the LEDs rapidly to indicate action initiation.
-    if (aAction == BoltLockManager::LOCK_ACTION)
+    if (aEvent->Type == AppEvent::kEventType_LockAction_Initiated)
     {
-        WdmFeature().GetBoltLockTraitDataSource().InitiateLock(aActor);
-        NRF_LOG_INFO("Lock Action has been initiated")
+        if (aEvent->LockAction_Initiated.Action == BoltLockManager::LOCK_ACTION)
+        {
+            NRF_LOG_INFO("Lock Action has been initiated")
+        }
+        else if (aEvent->LockAction_Initiated.Action == BoltLockManager::UNLOCK_ACTION)
+        {
+            NRF_LOG_INFO("Unlock Action has been initiated")
+        }
+
+        sLockLED.Blink(50, 50);
     }
-    else if (aAction == BoltLockManager::UNLOCK_ACTION)
+    else if (aEvent->Type == AppEvent::kEventType_LockAction_Completed)
     {
-        WdmFeature().GetBoltLockTraitDataSource().InitiateUnlock(aActor);
-        NRF_LOG_INFO("Unlock Action has been initiated")
+        if (aEvent->LockAction_Completed.Action == BoltLockManager::LOCK_ACTION)
+        {
+            NRF_LOG_INFO("Lock Action has been completed")
+
+            sLockLED.Set(true);
+        }
+        else if (aEvent->LockAction_Completed.Action == BoltLockManager::UNLOCK_ACTION)
+        {
+            NRF_LOG_INFO("Unlock Action has been completed")
+
+            sLockLED.Set(false);
+        }
     }
-
-    sLockLED.Blink(50, 50);
-}
-
-void AppTask::ActionCompleted(BoltLockManager::Action_t aAction)
-{
-    // if the action has been completed by the lock, update the bolt lock trait.
-    // Turn on the lock LED if in a LOCKED state OR
-    // Turn off the lock LED if in an UNLOCKED state.
-    if (aAction == BoltLockManager::LOCK_ACTION)
-    {
-        NRF_LOG_INFO("Lock Action has been completed")
-
-        WdmFeature().GetBoltLockTraitDataSource().LockingSuccessful();
-
-        sLockLED.Set(true);
-    }
-    else if (aAction == BoltLockManager::UNLOCK_ACTION)
-    {
-        NRF_LOG_INFO("Unlock Action has been completed")
-
-        WdmFeature().GetBoltLockTraitDataSource().UnlockingSuccessful();
-
-        sLockLED.Set(false);
-    }
-}
-
-void AppTask::PostLockActionRequest(int32_t aActor, BoltLockManager::Action_t aAction)
-{
-    AppEvent event;
-    event.Type             = AppEvent::kEventType_Lock;
-    event.LockEvent.Actor  = aActor;
-    event.LockEvent.Action = aAction;
-    event.Handler          = LockActionEventHandler;
-    PostEvent(&event);
 }
 
 void AppTask::PostEvent(const AppEvent * aEvent)
@@ -544,11 +457,19 @@ void AppTask::DispatchEvent(AppEvent * aEvent)
     }
     else
     {
-        NRF_LOG_INFO("Event received with no handler. Dropping event.");
+        if (aEvent->Type == AppEvent::kEventType_LocalDeviceDiscovered)
+        {
+            NRF_LOG_INFO("Local Device Discovered Event received. Attempting Device Subscription.");
+            PlatformMgr().ScheduleWork(WdmFeature().InitiateSubscriptionToDevice);
+        }
+        else
+        {
+            NRF_LOG_INFO("Event received with no handler. Dropping event.");
+        }
     }
 }
 
-void AppTask::InstallEventHandler(AppEvent * aEvent)
+void AppTask::InstallEventHandler(const AppEvent * aEvent)
 {
     SoftwareUpdateMgr().ImageInstallComplete(WEAVE_NO_ERROR);
 }
@@ -736,3 +657,27 @@ void AppTask::HandleSoftwareUpdateEvent(void *apAppState,
             break;
     }
 }
+
+#if SERVICELESS_DEVICE_DISCOVERY_ENABLED
+
+void AppTask::AttentionButtonHandler(const AppEvent * aEvent)
+{
+    if (aEvent->ButtonEvent.Action == ButtonManager::kButtonAction_Release)
+    {
+        ConnectivityMgr().SetUserSelectedMode(true);
+    }
+    else if (aEvent->ButtonEvent.Action == ButtonManager::kButtonAction_LongPress)
+    {
+        PlatformMgr().ScheduleWork(sAppTask.SeachForLocalSDKOpenCloseSensors);
+    }
+}
+
+void AppTask::SeachForLocalSDKOpenCloseSensors(intptr_t arg)
+{
+    /* We are only interested in other devices that have user selected mode enabled and are of the type
+     * SDK Open Close Example.
+     */
+    DeviceDiscoveryFeature().SearchForUserSelectedModeDevices(WEAVE_DEVICE_CONFIG_DEVICE_VENDOR_ID, 0xFE02);
+}
+
+#endif // SERVICELESS_DEVICE_DISCOVERY_ENABLED

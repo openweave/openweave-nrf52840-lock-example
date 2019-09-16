@@ -46,6 +46,11 @@ BoltLockTraitDataSource::BoltLockTraitDataSource() : TraitDataSource(&BoltLockTr
     mState         = BOLT_STATE_EXTENDED;
 }
 
+void BoltLockTraitDataSource::Init()
+{
+    BoltLockMgr().AddEventHandler(LockActionEventHandler, 0);
+}
+
 bool BoltLockTraitDataSource::IsLocked()
 {
     bool lock_state = false;
@@ -55,6 +60,32 @@ bool BoltLockTraitDataSource::IsLocked()
     }
 
     return lock_state;
+}
+
+void BoltLockTraitDataSource::LockActionEventHandler(const AppEvent * aEvent, intptr_t Arg)
+{
+    if (aEvent->Type == AppEvent::kEventType_LockAction_Initiated)
+    {
+        if (aEvent->LockAction_Initiated.Action == BoltLockManager::LOCK_ACTION)
+        {
+            WdmFeature().GetBoltLockTraitDataSource().InitiateLock(aEvent->LockAction_Initiated.Actor);
+        }
+        else if (aEvent->LockAction_Initiated.Action == BoltLockManager::UNLOCK_ACTION)
+        {
+            WdmFeature().GetBoltLockTraitDataSource().InitiateUnlock(aEvent->LockAction_Initiated.Actor);
+        }
+    }
+    else if (aEvent->Type == AppEvent::kEventType_LockAction_Completed)
+    {
+        if (aEvent->LockAction_Completed.Action == BoltLockManager::LOCK_ACTION)
+        {
+            WdmFeature().GetBoltLockTraitDataSource().LockingSuccessful();
+        }
+        else if (aEvent->LockAction_Completed.Action == BoltLockManager::UNLOCK_ACTION)
+        {
+            WdmFeature().GetBoltLockTraitDataSource().UnlockingSuccessful();
+        }
+    }
 }
 
 void BoltLockTraitDataSource::InitiateLock(int32_t aLockActor)
@@ -317,11 +348,11 @@ void BoltLockTraitDataSource::OnCustomCommand(nl::Weave::Profiles::DataManagemen
 
         if (changeRequestParam_State == BOLT_STATE_RETRACTED)
         {
-            GetAppTask().PostLockActionRequest(changeRequestParam_Actor, BoltLockManager::UNLOCK_ACTION);
+            BoltLockMgr().PostLockActionRequest(changeRequestParam_Actor, BoltLockManager::UNLOCK_ACTION);
         }
         else if (changeRequestParam_State == BOLT_STATE_EXTENDED)
         {
-            GetAppTask().PostLockActionRequest(changeRequestParam_Actor, BoltLockManager::LOCK_ACTION);
+            BoltLockMgr().PostLockActionRequest(changeRequestParam_Actor, BoltLockManager::LOCK_ACTION);
         }
         else
         {

@@ -263,8 +263,11 @@ int main(void)
     //
     mbedtls_platform_set_calloc_free(calloc, free);
 
-    // Configure device to operate as a Thread sleepy end-device.
+#if SERVICELESS_DEVICE_DISCOVERY_ENABLED
+    ret = ConnectivityMgr().SetThreadDeviceType(ConnectivityManager::kThreadDeviceType_Router);
+#else
     ret = ConnectivityMgr().SetThreadDeviceType(ConnectivityManager::kThreadDeviceType_SleepyEndDevice);
+#endif
     if (ret != WEAVE_NO_ERROR)
     {
         NRF_LOG_INFO("ConnectivityMgr().SetThreadDeviceType() failed");

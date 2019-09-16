@@ -17,6 +17,8 @@
  */
 
 #include "WDMFeature.h"
+#include "DeviceDiscovery.h"
+#include "BoltLockManager.h"
 
 #include "nrf_log.h"
 #include "nrf_error.h"
@@ -33,50 +35,11 @@ using namespace ::nl::Weave::Profiles::DataManagement_Current;
 // TODO: Remove this
 #define kServiceEndpoint_Data_Management 0x18B4300200000003ull ///< Core Weave data management protocol endpoint
 
-/** Defines the timeout for liveness between the service and the device.
- *  For sleepy end node devices, this timeout will be much larger than the current
- *  value to preserve battery.
- */
-#define SERVICE_LIVENESS_TIMEOUT_SEC 60 * 1 // 1 minute
-
-/** Defines the timeout for a response to any message initiated by the device to the service.
- *  This includes notifies, subscribe confirms, cancels and updates.
- *  This timeout is kept SERVICE_WRM_MAX_RETRANS x SERVICE_WRM_INITIAL_RETRANS_TIMEOUT_MS + some buffer
- *  to account for latency in the message transmission through multiple hops.
- */
-#define SERVICE_MESSAGE_RESPONSE_TIMEOUT_MS 10000
-
-/** Defines the timeout for a message to get retransmitted when no wrm ack or
- *  response has been heard back from the service. This timeout is kept larger
- *  for now since the message has to travel through multiple hops and service
- *  layers before actually making it to the actual receiver.
- *  @note
- *    WRM has an initial and active retransmission timeouts to interact with
- *    sleepy destination nodes. For the time being, the pinna WRM config would
- *    set both these timeouts to be the same based on the assumption that the pinna
- *    would not be interacting directly with a sleepy peer.
- */
-#define SERVICE_WRM_INITIAL_RETRANS_TIMEOUT_MS 2500
-
-#define SERVICE_WRM_ACTIVE_RETRANS_TIMEOUT_MS 2500
-
-/** Define the maximum number of retransmissions in WRM
- */
-#define SERVICE_WRM_MAX_RETRANS 3
-
-/** Define the timeout for piggybacking a WRM acknowledgment message
- */
-#define SERVICE_WRM_PIGGYBACK_ACK_TIMEOUT_MS 200
-
-/** Defines the timeout for expecting a subscribe response after sending a subscribe request.
- *  This is meant to be a gross timeout - the MESSAGE_RESPONSE_TIMEOUT_MS will usually trip first
- *  to catch timeouts for each message in the subscribe request exchange.
- *  SUBSCRIPTION_RESPONSE_TIMEOUT_MS > Average no. of notifies during a subscription * MESSAGE_RESPONSE_TIMEOUT_MS
- */
-#define SUBSCRIPTION_RESPONSE_TIMEOUT_MS 40000
-
 const nl::Weave::WRMPConfig gWRMPConfigService = { SERVICE_WRM_INITIAL_RETRANS_TIMEOUT_MS, SERVICE_WRM_ACTIVE_RETRANS_TIMEOUT_MS,
                                                    SERVICE_WRM_PIGGYBACK_ACK_TIMEOUT_MS, SERVICE_WRM_MAX_RETRANS };
+
+const nl::Weave::WRMPConfig gWRMPConfigDevice  = { DEVICE_WRM_INITIAL_RETRANS_TIMEOUT_MS, DEVICE_WRM_ACTIVE_RETRANS_TIMEOUT_MS,
+                                                   DEVICE_WRM_PIGGYBACK_ACK_TIMEOUT_MS, DEVICE_WRM_MAX_RETRANS };
 
 WDMFeature WDMFeature::sWDMfeature;
 
@@ -114,14 +77,19 @@ WEAVE_ERROR PublisherLock::Unlock()
 WDMFeature::WDMFeature(void)
     : mServiceSinkTraitCatalog(ResourceIdentifier(ResourceIdentifier::SELF_NODE_ID), mServiceSinkCatalogStore,
                                sizeof(mServiceSinkCatalogStore) / sizeof(mServiceSinkCatalogStore[0]))
+    , mDeviceSinkTraitCatalog(ResourceIdentifier(ResourceIdentifier::SELF_NODE_ID), mDeviceSinkCatalogStore,
+                               sizeof(mDeviceSinkCatalogStore) / sizeof(mDeviceSinkCatalogStore[0]))
     , mServiceSourceTraitCatalog(ResourceIdentifier(ResourceIdentifier::SELF_NODE_ID), mServiceSourceCatalogStore,
                                sizeof(mServiceSourceCatalogStore) / sizeof(mServiceSourceCatalogStore[0]))
     , mServiceSubClient(NULL)
+    , mDeviceSubClient(NULL)
     , mServiceCounterSubHandler(NULL)
     , mServiceSubBinding(NULL)
+    , mDeviceSubBinding(NULL)
     , mIsSubToServiceEstablished(false)
     , mIsServiceCounterSubEstablished(false)
     , mIsSubToServiceActivated(false)
+    , mIsDeviceSubEstablished(false)
 {
 }
 
@@ -158,6 +126,11 @@ bool WDMFeature::AreServiceSubscriptionsEstablished(void)
     return (mIsSubToServiceEstablished && mIsServiceCounterSubEstablished);
 }
 
+bool WDMFeature::IsDeviceSubscriptionEstablished(void)
+{
+    return mIsDeviceSubEstablished;
+}
+
 void WDMFeature::InitiateSubscriptionToService(void)
 {
     NRF_LOG_INFO("Initiating Subscription To Service");
@@ -166,7 +139,24 @@ void WDMFeature::InitiateSubscriptionToService(void)
     mServiceSubClient->InitiateSubscription();
 }
 
-void WDMFeature::TearDownSubscriptions(void)
+void WDMFeature::InitiateSubscriptionToDevice(intptr_t arg)
+{
+    NRF_LOG_INFO("Initiating Subscription To Device");
+
+    WdmFeature().TearDownDeviceSubscription();
+    WdmFeature().mDeviceSubClient->EnableResubscribe(NULL);
+    WdmFeature().mDeviceSubClient->InitiateSubscription();
+}
+
+void WDMFeature::TearDownDeviceSubscription(void)
+{
+    if (mDeviceSubClient)
+    {
+        mDeviceSubClient->AbortSubscription();
+    }
+}
+
+void WDMFeature::TearDownServiceSubscriptions(void)
 {
     if (mServiceSubClient)
     {
@@ -179,7 +169,7 @@ void WDMFeature::TearDownSubscriptions(void)
     }
 }
 
-void WDMFeature::HandleServiceBindingEvent(void * appState, ::nl::Weave::Binding::EventType eventType,
+void WDMFeature::HandleBindingEvent(void * appState, ::nl::Weave::Binding::EventType eventType,
                                            const ::nl::Weave::Binding::InEventParam & inParam,
                                            ::nl::Weave::Binding::OutEventParam & outParam)
 {
@@ -188,25 +178,53 @@ void WDMFeature::HandleServiceBindingEvent(void * appState, ::nl::Weave::Binding
     switch (eventType)
     {
         case Binding::kEvent_PrepareRequested:
-            outParam.PrepareRequested.PrepareError = binding->BeginConfiguration()
+        {
+            uint64_t target_node = kServiceEndpoint_Data_Management;
+
+            if (binding == sWDMfeature.mDeviceSubBinding)
+            {
+                if (!DeviceDiscoveryFeature().GetDiscoveredDeviceNodeId(target_node))
+                {
+                    outParam.PrepareRequested.PrepareError = WEAVE_ERROR_INCORRECT_STATE;
+                    break;
+                }
+
+                outParam.PrepareRequested.PrepareError = binding->BeginConfiguration()
+                                                         .Target_NodeId(target_node)
+                                                         .TargetAddress_WeaveFabric(::nl::Weave::kWeaveSubnetId_ThreadMesh)
+                                                         .Transport_UDP_WRM()
+                                                         .Transport_DefaultWRMPConfig(gWRMPConfigDevice)
+                                                         .Exchange_ResponseTimeoutMsec(DEVICE_MESSAGE_RESPONSE_TIMEOUT_MS)
+                                                         .Security_CASESession()
+                                                         .PrepareBinding();
+            }
+            else if (binding == sWDMfeature.mServiceSubBinding)
+            {
+                outParam.PrepareRequested.PrepareError = binding->BeginConfiguration()
                                                          .Target_ServiceEndpoint(kServiceEndpoint_Data_Management)
                                                          .Transport_UDP_WRM()
                                                          .Transport_DefaultWRMPConfig(gWRMPConfigService)
                                                          .Exchange_ResponseTimeoutMsec(SERVICE_MESSAGE_RESPONSE_TIMEOUT_MS)
                                                          .Security_SharedCASESession()
                                                          .PrepareBinding();
+            }
             break;
+        }
 
         case Binding::kEvent_PrepareFailed:
-            NRF_LOG_INFO("Failed to prepare service subscription binding: %s", ErrorStr(inParam.PrepareFailed.Reason));
+            NRF_LOG_INFO("Failed to prepare %s subscription binding: %s",
+                                                                        (binding == sWDMfeature.mServiceSubBinding) ? "service" : "device",
+                                                                        ErrorStr(inParam.PrepareFailed.Reason));
             break;
 
         case Binding::kEvent_BindingFailed:
-            NRF_LOG_INFO("Service subscription binding failed: %s", ErrorStr(inParam.BindingFailed.Reason));
+            NRF_LOG_INFO("%s subscription binding failed: %s",
+                                                            (binding == sWDMfeature.mServiceSubBinding) ? "service" : "device",
+                                                            ErrorStr(inParam.BindingFailed.Reason));
             break;
 
         case Binding::kEvent_BindingReady:
-            NRF_LOG_INFO("Service subscription binding ready");
+            NRF_LOG_INFO("%s subscription binding ready",(binding == sWDMfeature.mServiceSubBinding) ? "service" : "device");
             break;
 
         default:
@@ -231,14 +249,15 @@ void WDMFeature::HandleInboundSubscriptionEvent(void * aAppState, SubscriptionHa
                              inParam.mSubscribeRequestParsed.mSubscriptionId, inParam.mSubscribeRequestParsed.mNumTraitInstances);
 
                 sWDMfeature.mServiceCounterSubHandler = inParam.mSubscribeRequestParsed.mHandler;
+
+                binding->SetDefaultResponseTimeout(SERVICE_MESSAGE_RESPONSE_TIMEOUT_MS);
+                binding->SetDefaultWRMPConfig(gWRMPConfigService);
             }
             else
             {
-                break;
+                NRF_LOG_INFO("Inbound device subscription request received (sub id %016" PRIX64 ", path count %" PRId16 ")",
+                             inParam.mSubscribeRequestParsed.mSubscriptionId, inParam.mSubscribeRequestParsed.mNumTraitInstances);
             }
-
-            binding->SetDefaultResponseTimeout(SERVICE_MESSAGE_RESPONSE_TIMEOUT_MS);
-            binding->SetDefaultWRMPConfig(gWRMPConfigService);
 
             inParam.mSubscribeRequestParsed.mHandler->AcceptSubscribeRequest(inParam.mSubscribeRequestParsed.mTimeoutSecMin);
             break;
@@ -251,6 +270,10 @@ void WDMFeature::HandleInboundSubscriptionEvent(void * aAppState, SubscriptionHa
                 NRF_LOG_INFO("Inbound service counter-subscription established");
 
                 sWDMfeature.mIsServiceCounterSubEstablished = true;
+            }
+            else
+            {
+                 NRF_LOG_INFO("Inbound device subscription established");
             }
             break;
         }
@@ -267,6 +290,10 @@ void WDMFeature::HandleInboundSubscriptionEvent(void * aAppState, SubscriptionHa
 
                 sWDMfeature.mServiceCounterSubHandler       = NULL;
                 sWDMfeature.mIsServiceCounterSubEstablished = false;
+            }
+            else
+            {
+                NRF_LOG_INFO("Inbound device subscription terminated: %s", termDesc);
             }
             break;
         }
@@ -285,34 +312,76 @@ void WDMFeature::HandleOutboundServiceSubscriptionEvent(void * appState, Subscri
     {
         case SubscriptionClient::kEvent_OnSubscribeRequestPrepareNeeded:
         {
-            outParam.mSubscribeRequestPrepareNeeded.mPathList                  = &(sWDMfeature.mServiceSinkTraitPaths[0]);
-            outParam.mSubscribeRequestPrepareNeeded.mPathListSize              = 1;
+            if (inParam.mSubscribeRequestPrepareNeeded.mClient == sWDMfeature.mServiceSubClient)
+            {
+                outParam.mSubscribeRequestPrepareNeeded.mPathList                  = &(sWDMfeature.mServiceSinkTraitPaths[0]);
+                outParam.mSubscribeRequestPrepareNeeded.mPathListSize              = kSinkHandle_Service_Max;
+                outParam.mSubscribeRequestPrepareNeeded.mTimeoutSecMin             = SERVICE_LIVENESS_TIMEOUT_SEC;
+                outParam.mSubscribeRequestPrepareNeeded.mTimeoutSecMax             = SERVICE_LIVENESS_TIMEOUT_SEC;
+            }
+            else if (inParam.mSubscribeRequestPrepareNeeded.mClient == sWDMfeature.mDeviceSubClient)
+            {
+                outParam.mSubscribeRequestPrepareNeeded.mPathList                  = &(sWDMfeature.mDeviceSinkTraitPaths[0]);
+                outParam.mSubscribeRequestPrepareNeeded.mPathListSize              = kSinkHandle_Device_Max;
+                outParam.mSubscribeRequestPrepareNeeded.mTimeoutSecMin             = DEVICE_LIVENESS_TIMEOUT_SEC;
+                outParam.mSubscribeRequestPrepareNeeded.mTimeoutSecMax             = DEVICE_LIVENESS_TIMEOUT_SEC;
+            }
+
             outParam.mSubscribeRequestPrepareNeeded.mVersionedPathList         = NULL;
             outParam.mSubscribeRequestPrepareNeeded.mNeedAllEvents             = false;
             outParam.mSubscribeRequestPrepareNeeded.mLastObservedEventList     = NULL;
             outParam.mSubscribeRequestPrepareNeeded.mLastObservedEventListSize = 0;
-            outParam.mSubscribeRequestPrepareNeeded.mTimeoutSecMin             = SERVICE_LIVENESS_TIMEOUT_SEC;
-            outParam.mSubscribeRequestPrepareNeeded.mTimeoutSecMax             = SERVICE_LIVENESS_TIMEOUT_SEC;
 
-            NRF_LOG_INFO("Sending outbound service subscribe request (path count 1)");
+            NRF_LOG_INFO("Sending outbound service subscribe request");
 
             break;
         }
         case SubscriptionClient::kEvent_OnSubscriptionEstablished:
-            NRF_LOG_INFO("Outbound service subscription established (sub id %016" PRIX64 ")",
-                         inParam.mSubscriptionEstablished.mSubscriptionId);
-            sWDMfeature.mIsSubToServiceEstablished = true;
+            if (inParam.mSubscriptionEstablished.mClient == sWDMfeature.mServiceSubClient)
+            {
+                NRF_LOG_INFO("Outbound service subscription established (sub id %016" PRIX64 ")",
+                             inParam.mSubscriptionEstablished.mSubscriptionId);
+
+                sWDMfeature.mIsSubToServiceEstablished = true;
+            }
+            else if (inParam.mSubscriptionEstablished.mClient == sWDMfeature.mDeviceSubClient)
+            {
+                NRF_LOG_INFO("Outbound device subscription established (sub id %016" PRIX64 ")",
+                             inParam.mSubscriptionEstablished.mSubscriptionId);
+
+                sWDMfeature.mIsDeviceSubEstablished = true;
+
+                BoltLockMgr().EvaluateChange();
+            }
             break;
 
         case SubscriptionClient::kEvent_OnSubscriptionTerminated:
-            NRF_LOG_INFO(
-                "Outbound service subscription terminated: %s",
-                (inParam.mSubscriptionTerminated.mIsStatusCodeValid)
-                    ? StatusReportStr(inParam.mSubscriptionTerminated.mStatusProfileId, inParam.mSubscriptionTerminated.mStatusCode)
-                    : ErrorStr(inParam.mSubscriptionTerminated.mReason));
+        {
+            if (inParam.mSubscriptionTerminated.mClient == sWDMfeature.mServiceSubClient)
+            {
+                NRF_LOG_INFO(
+                    "Outbound service subscription terminated: %s",
+                    (inParam.mSubscriptionTerminated.mIsStatusCodeValid)
+                        ? StatusReportStr(inParam.mSubscriptionTerminated.mStatusProfileId, inParam.mSubscriptionTerminated.mStatusCode)
+                        : ErrorStr(inParam.mSubscriptionTerminated.mReason));
 
-            sWDMfeature.mIsSubToServiceEstablished = false;
+
+                sWDMfeature.mIsSubToServiceEstablished = false;
+            }
+            else if (inParam.mSubscriptionTerminated.mClient == sWDMfeature.mDeviceSubClient)
+            {
+                NRF_LOG_INFO(
+                    "Outbound device subscription terminated: %s",
+                    (inParam.mSubscriptionTerminated.mIsStatusCodeValid)
+                        ? StatusReportStr(inParam.mSubscriptionTerminated.mStatusProfileId, inParam.mSubscriptionTerminated.mStatusCode)
+                        : ErrorStr(inParam.mSubscriptionTerminated.mReason));
+
+                sWDMfeature.mIsDeviceSubEstablished = false;
+
+                BoltLockMgr().EvaluateChange();
+            }
             break;
+        }
 
         default:
             SubscriptionClient::DefaultEventHandler(eventType, inParam, outParam);
@@ -343,22 +412,31 @@ WEAVE_ERROR WDMFeature::Init()
 {
     WEAVE_ERROR err;
     int ret;
-    Binding * binding;
 
     ret = mPublisherLock.Init();
     VerifyOrExit(ret != NRF_ERROR_NULL, err = WEAVE_ERROR_NO_MEMORY);
 
     PlatformMgr().AddEventHandler(PlatformEventHandler);
 
+    mBoltLockTraitSource.Init();
+
     mServiceSourceTraitCatalog.AddAt(0, &mBoltLockTraitSource, kSourceHandle_BoltLockTrait);
     mServiceSourceTraitCatalog.AddAt(0, &mDeviceIdentityTraitSource, kSourceHandle_DeviceIdentityTrait);
 
-    mServiceSinkTraitCatalog.AddAt(0, &mBoltLockSettingsTraitSink, kSinkHandle_BoltLockSettingsTrait);
+    mServiceSinkTraitCatalog.AddAt(0, &mBoltLockSettingsTraitSink, kSinkHandle_Service_BoltLockSettingsTrait);
 
-    for (uint8_t handle = 0; handle < kSinkHandle_Max; handle++)
+    mDeviceSinkTraitCatalog.AddAt(0, &mSecurityOpenCloseTraitSink, kSinkHandle_Device_SecurityOpenCloseTrait);
+
+    for (uint8_t handle = 0; handle < kSinkHandle_Service_Max; handle++)
     {
         mServiceSinkTraitPaths[handle].mTraitDataHandle    = handle;
         mServiceSinkTraitPaths[handle].mPropertyPathHandle = kRootPropertyPathHandle;
+    }
+
+    for (uint8_t handle = 0; handle < kSinkHandle_Device_Max; handle++)
+    {
+        mDeviceSinkTraitPaths[handle].mTraitDataHandle    = handle;
+        mDeviceSinkTraitPaths[handle].mPropertyPathHandle = kRootPropertyPathHandle;
     }
 
     err = mSubscriptionEngine.Init(&ExchangeMgr, this, HandleSubscriptionEngineEvent);
@@ -367,14 +445,20 @@ WEAVE_ERROR WDMFeature::Init()
     err = mSubscriptionEngine.EnablePublisher(&mPublisherLock, &mServiceSourceTraitCatalog);
     SuccessOrExit(err);
 
-    binding = ExchangeMgr.NewBinding(HandleServiceBindingEvent, this);
-    VerifyOrExit(NULL != binding, err = WEAVE_ERROR_NO_MEMORY);
+    mServiceSubBinding = ExchangeMgr.NewBinding(HandleBindingEvent, this);
+    VerifyOrExit(NULL != mServiceSubBinding, err = WEAVE_ERROR_NO_MEMORY);
 
-    err = mSubscriptionEngine.NewClient(&(mServiceSubClient), binding, this, HandleOutboundServiceSubscriptionEvent,
+    mDeviceSubBinding = ExchangeMgr.NewBinding(HandleBindingEvent, this);
+    VerifyOrExit(NULL != mDeviceSubBinding, err = WEAVE_ERROR_NO_MEMORY);
+
+    err = mSubscriptionEngine.NewClient(&(mServiceSubClient), mServiceSubBinding, this, HandleOutboundServiceSubscriptionEvent,
                                         &mServiceSinkTraitCatalog, SUBSCRIPTION_RESPONSE_TIMEOUT_MS);
     SuccessOrExit(err);
 
-    mServiceSubBinding = binding;
+    err = mSubscriptionEngine.NewClient(&(mDeviceSubClient), mDeviceSubBinding, this, HandleOutboundServiceSubscriptionEvent,
+                                        &mDeviceSinkTraitCatalog, SUBSCRIPTION_RESPONSE_TIMEOUT_MS);
+    SuccessOrExit(err);
+
 
     NRF_LOG_INFO("WDMFeature Init Complete");
 
