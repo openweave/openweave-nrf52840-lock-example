@@ -16,13 +16,13 @@
  *    limitations under the License.
  */
 
-#include <weave/trait/description/DeviceIdentityTrait.h>
+#include <schema/include/SimpleCommandTrait.h>
 
 namespace Schema {
-namespace Weave {
+namespace Nest {
+namespace Test {
 namespace Trait {
-namespace Description {
-namespace DeviceIdentityTrait {
+namespace SimpleCommandTrait {
 
 using namespace ::nl::Weave::Profiles::DataManagement;
 
@@ -31,16 +31,14 @@ using namespace ::nl::Weave::Profiles::DataManagement;
 //
 
 const TraitSchemaEngine::PropertyInfo PropertyMap[] = {
-    { kPropertyHandle_Root, 1 }, // vendor_id
-    { kPropertyHandle_Root, 2 }, // vendor_id_description
-    { kPropertyHandle_Root, 3 }, // vendor_product_id
-    { kPropertyHandle_Root, 4 }, // product_id_description
-    { kPropertyHandle_Root, 5 }, // product_revision
-    { kPropertyHandle_Root, 6 }, // serial_number
-    { kPropertyHandle_Root, 7 }, // software_version
-    { kPropertyHandle_Root, 8 }, // manufacturing_date
-    { kPropertyHandle_Root, 9 }, // device_id
-    { kPropertyHandle_Root, 10 }, // fabric_id
+};
+
+//
+// IsDictionary Table
+//
+
+uint8_t IsDictionaryTypeHandleBitfield[] = {
+        0x0
 };
 
 //
@@ -48,7 +46,7 @@ const TraitSchemaEngine::PropertyInfo PropertyMap[] = {
 //
 
 uint8_t IsOptionalHandleBitfield[] = {
-        0x8a, 0x3
+        0x0
 };
 
 //
@@ -56,7 +54,15 @@ uint8_t IsOptionalHandleBitfield[] = {
 //
 
 uint8_t IsNullableHandleBitfield[] = {
-        0x8a, 0x0
+        0x0
+};
+
+//
+// IsEphemeral Table
+//
+
+uint8_t IsEphemeralHandleBitfield[] = {
+        0x0
 };
 
 //
@@ -68,15 +74,15 @@ const TraitSchemaEngine TraitSchema = {
         kWeaveProfileId,
         PropertyMap,
         sizeof(PropertyMap) / sizeof(PropertyMap[0]),
-        1,
+        3,
 #if (TDM_EXTENSION_SUPPORT) || (TDM_VERSIONING_SUPPORT)
         2,
 #endif
-        NULL,
+        IsDictionaryTypeHandleBitfield,
         &IsOptionalHandleBitfield[0],
         NULL,
         &IsNullableHandleBitfield[0],
-        NULL,
+        &IsEphemeralHandleBitfield[0],
 #if (TDM_EXTENSION_SUPPORT)
         NULL,
 #endif
@@ -86,8 +92,9 @@ const TraitSchemaEngine TraitSchema = {
     }
 };
 
-} // namespace DeviceIdentityTrait
-} // namespace Description
+
+} // namespace BoltLockTrait
+} // namespace Security
 } // namespace Trait
 } // namespace Weave
 } // namespace Schema

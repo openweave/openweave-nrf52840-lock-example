@@ -37,14 +37,10 @@ SRCS = \
     $(PROJECT_ROOT)/main/main.cpp \
     $(PROJECT_ROOT)/main/AppTask.cpp \
     $(PROJECT_ROOT)/main/LEDWidget.cpp \
-    $(PROJECT_ROOT)/main/BoltLockManager.cpp \
     $(PROJECT_ROOT)/main/WDMFeature.cpp \
-    $(PROJECT_ROOT)/main/traits/BoltLockTraitDataSource.cpp \
-    $(PROJECT_ROOT)/main/traits/BoltLockSettingsTraitDataSink.cpp \
-    $(PROJECT_ROOT)/main/traits/DeviceIdentityTraitDataSource.cpp \
-    $(PROJECT_ROOT)/main/schema/BoltLockTrait.cpp \
-    $(PROJECT_ROOT)/main/schema/BoltLockSettingsTrait.cpp \
-    $(PROJECT_ROOT)/main/schema/DeviceIdentityTrait.cpp \
+    $(PROJECT_ROOT)/main/CommandSender.cpp \
+    $(PROJECT_ROOT)/main/traits/SimpleCommandTraitDataSource.cpp \
+    $(PROJECT_ROOT)/main/schema/SimpleCommandTrait.cpp \
     $(PROJECT_ROOT)/main/support/CXXExceptionStubs.cpp \
     $(PROJECT_ROOT)/main/support/nRF5Sbrk.c \
     $(PROJECT_ROOT)/main/support/FreeRTOSNewlibLockSupport.c \

@@ -115,16 +115,11 @@
 
 // ---- Lock Example App Config ----
 
-#define LOCK_BUTTON                             BUTTON_2
+#define SEND_BUTTON                             BUTTON_2
 #define FUNCTION_BUTTON                         BUTTON_1
 #define FUNCTION_BUTTON_DEBOUNCE_PERIOD_MS      50
 
 #define SYSTEM_STATE_LED                        BSP_LED_0
-#define LOCK_STATE_LED                          BSP_LED_1
-
-// Time it takes in ms for the simulated actuator to move from one
-// state to another.
-#define ACTUATOR_MOVEMENT_PERIOS_MS             2000
 
 // ---- Lock Example SWU Config ----
 #define SWU_INTERVAl_WINDOW_MIN_MS				(23*60*60*1000) // 23 hours
@@ -134,5 +129,6 @@
 #define THREAD_ACTIVE_POLLING_INTERVAL_MS       100
 #define THREAD_INACTIVE_POLLING_INTERVAL_MS     1000
 
+#define COMMAND_TARGET_NODE_ID                  0x18B4300000000082
 
 #endif //APP_CONFIG_H

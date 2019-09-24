@@ -21,7 +21,7 @@
 #include "WDMFeature.h"
 #include "LEDWidget.h"
 
-#include <schema/include/BoltLockTrait.h>
+#include "CommandSender.h"
 
 #include "app_config.h"
 #include "app_timer.h"
@@ -54,17 +54,14 @@ static TaskHandle_t sAppTaskHandle;
 static QueueHandle_t sAppEventQueue;
 
 static LEDWidget sStatusLED;
-static LEDWidget sLockLED;
 static LEDWidget sUnusedLED;
 static LEDWidget sUnusedLED_1;
+static LEDWidget sUnusedLED_2;
 
-static bool sIsThreadProvisioned              = false;
-static bool sIsThreadEnabled                  = false;
 static bool sIsThreadAttached                 = false;
-static bool sIsPairedToAccount                = false;
-static bool sIsServiceSubscriptionEstablished = false;
 static bool sHaveBLEConnections               = false;
-static bool sHaveServiceConnectivity          = false;
+
+static bool sIsSimpleCommandTraitPublisher    = false;
 
 static nl::Weave::Platform::Security::SHA256 sSHA256;
 
@@ -122,15 +119,13 @@ int AppTask::Init()
     // Initialize LEDs
     sStatusLED.Init(SYSTEM_STATE_LED);
 
-    sLockLED.Init(LOCK_STATE_LED);
-    sLockLED.Set(!BoltLockMgr().IsUnlocked());
-
     sUnusedLED.Init(BSP_LED_2);
     sUnusedLED_1.Init(BSP_LED_3);
+    sUnusedLED_2.Init(BSP_LED_1);
 
     // Initialize buttons
     static app_button_cfg_t sButtons[] = {
-        { LOCK_BUTTON, APP_BUTTON_ACTIVE_LOW, BUTTON_PULL, ButtonEventHandler },
+        { SEND_BUTTON, APP_BUTTON_ACTIVE_LOW, BUTTON_PULL, ButtonEventHandler },
         { FUNCTION_BUTTON, APP_BUTTON_ACTIVE_LOW, BUTTON_PULL, ButtonEventHandler },
     };
 
@@ -163,14 +158,12 @@ int AppTask::Init()
         APP_ERROR_HANDLER(ret);
     }
 
-    ret = BoltLockMgr().Init();
+    ret = sCommandSender.Init(COMMAND_TARGET_NODE_ID);
     if (ret != NRF_SUCCESS)
     {
-        NRF_LOG_INFO("BoltLockMgr().Init() failed");
+        NRF_LOG_INFO("sCommandSender().Init() failed");
         APP_ERROR_HANDLER(ret);
     }
-
-    BoltLockMgr().SetCallbacks(ActionInitiated, ActionCompleted);
 
     sWeaveEventLock = xSemaphoreCreateMutex();
     if (sWeaveEventLock == NULL)
@@ -199,6 +192,20 @@ int AppTask::Init()
     APP_ERROR_CHECK(err);
 
     NRF_LOG_INFO("Current Firmware Version: %s", currentFirmwareRev);
+
+    {
+        uint64_t deviceId;
+        ConfigurationMgr().GetDeviceId(deviceId);
+        sIsSimpleCommandTraitPublisher = (deviceId == COMMAND_TARGET_NODE_ID);
+        if (sIsSimpleCommandTraitPublisher)
+        {
+            NRF_LOG_INFO("Operating as SimpleCommandTrait publisher");
+        }
+        else
+        {
+            NRF_LOG_INFO("Operating as SimpleCommandTrait client");
+        }
+    }
 
     return ret;
 }
@@ -231,45 +238,30 @@ void AppTask::AppTaskMain(void * pvParameter)
         // task is busy (e.g. with a long crypto operation).
         if (PlatformMgr().TryLockWeaveStack())
         {
-            sIsThreadProvisioned              = ConnectivityMgr().IsThreadProvisioned();
-            sIsThreadEnabled                  = ConnectivityMgr().IsThreadEnabled();
             sIsThreadAttached                 = ConnectivityMgr().IsThreadAttached();
             sHaveBLEConnections               = (ConnectivityMgr().NumBLEConnections() != 0);
-            sIsPairedToAccount                = ConfigurationMgr().IsPairedToAccount();
-            sHaveServiceConnectivity          = ConnectivityMgr().HaveServiceConnectivity();
-            sIsServiceSubscriptionEstablished = WdmFeature().AreServiceSubscriptionsEstablished();
             PlatformMgr().UnlockWeaveStack();
         }
 
-        // Consider the system to be "fully connected" if it has service
-        // connectivity and it is able to interact with the service on a regular basis.
-        bool isFullyConnected = (sHaveServiceConnectivity && sIsServiceSubscriptionEstablished);
+        // Consider the system to be "fully connected" if it attached to a Thread network.
+        bool isFullyConnected = (sIsThreadAttached);
 
         // Update the status LED if factory reset has not been initiated.
         //
+        // If the system has ble connection(s) THEN blink the LEDs at an even rate of 100ms.
+        //
         // If system has "full connectivity", keep the LED On constantly.
-        //
-        // If thread and service provisioned, but not attached to the thread network yet OR no
-        // connectivity to the service OR subscriptions are not fully established
-        // THEN blink the LED Off for a short period of time.
-        //
-        // If the system has ble connection(s) uptill the stage above, THEN blink the LEDs at an even
-        // rate of 100ms.
         //
         // Otherwise, blink the LED ON for a very short time.
         if (sAppTask.mFunction != kFunction_FactoryReset)
         {
+            if (sHaveBLEConnections)
+            {
+                sStatusLED.Blink(100, 100);
+            }
             if (isFullyConnected)
             {
                 sStatusLED.Set(true);
-            }
-            else if (sIsThreadProvisioned && sIsThreadEnabled && sIsPairedToAccount && (!sIsThreadAttached || !isFullyConnected))
-            {
-                sStatusLED.Blink(950, 50);
-            }
-            else if (sHaveBLEConnections)
-            {
-                sStatusLED.Blink(100, 100);
             }
             else
             {
@@ -278,56 +270,26 @@ void AppTask::AppTaskMain(void * pvParameter)
         }
 
         sStatusLED.Animate();
-        sLockLED.Animate();
         sUnusedLED.Animate();
         sUnusedLED_1.Animate();
+        sUnusedLED_2.Animate();
     }
 }
 
-void AppTask::LockActionEventHandler(AppEvent * aEvent)
+void AppTask::SendCommandEventHandler(AppEvent * aEvent)
 {
-    bool initiated = false;
-    BoltLockManager::Action_t action;
-    int32_t actor;
-    ret_code_t ret = NRF_SUCCESS;
-
-    if (aEvent->Type == AppEvent::kEventType_Lock)
+    if (aEvent->Type == AppEvent::kEventType_Button &&
+        aEvent->ButtonEvent.PinNo == SEND_BUTTON &&
+        aEvent->ButtonEvent.Action == APP_BUTTON_PUSH &&
+        !sIsSimpleCommandTraitPublisher)
     {
-        action = static_cast<BoltLockManager::Action_t>(aEvent->LockEvent.Action);
-        actor  = aEvent->LockEvent.Actor;
-    }
-    else if (aEvent->Type == AppEvent::kEventType_Button)
-    {
-        if (BoltLockMgr().IsUnlocked())
-        {
-            action = BoltLockManager::LOCK_ACTION;
-        }
-        else
-        {
-            action = BoltLockManager::UNLOCK_ACTION;
-        }
-
-        actor = Schema::Weave::Trait::Security::BoltLockTrait::BOLT_LOCK_ACTOR_METHOD_PHYSICAL;
-    }
-    else
-    {
-        ret = NRF_ERROR_NULL;
-    }
-
-    if (ret == NRF_SUCCESS)
-    {
-        initiated = BoltLockMgr().InitiateAction(actor, action);
-
-        if (!initiated)
-        {
-            NRF_LOG_INFO("Action is already in progress or active.");
-        }
+        sCommandSender.SendCommand(42);
     }
 }
 
 void AppTask::ButtonEventHandler(uint8_t pin_no, uint8_t button_action)
 {
-    if (pin_no != LOCK_BUTTON && pin_no != FUNCTION_BUTTON)
+    if (pin_no != SEND_BUTTON && pin_no != FUNCTION_BUTTON)
     {
         return;
     }
@@ -337,9 +299,9 @@ void AppTask::ButtonEventHandler(uint8_t pin_no, uint8_t button_action)
     button_event.ButtonEvent.PinNo  = pin_no;
     button_event.ButtonEvent.Action = button_action;
 
-    if (pin_no == LOCK_BUTTON && button_action == APP_BUTTON_PUSH)
+    if (pin_no == SEND_BUTTON && button_action == APP_BUTTON_PUSH)
     {
-        button_event.Handler = LockActionEventHandler;
+        button_event.Handler = SendCommandEventHandler;
     }
     else if (pin_no == FUNCTION_BUTTON)
     {
@@ -375,12 +337,12 @@ void AppTask::FunctionTimerEventHandler(AppEvent * aEvent)
 
         // Turn off all LEDs before starting blink to make sure blink is co-ordinated.
         sStatusLED.Set(false);
-        sLockLED.Set(false);
+        sUnusedLED_2.Set(false);
         sUnusedLED_1.Set(false);
         sUnusedLED.Set(false);
 
         sStatusLED.Blink(500);
-        sLockLED.Blink(500);
+        sUnusedLED_2.Blink(500);
         sUnusedLED.Blink(500);
         sUnusedLED_1.Blink(500);
     }
@@ -432,9 +394,7 @@ void AppTask::FunctionHandler(AppEvent * aEvent)
         {
             sUnusedLED.Set(false);
             sUnusedLED_1.Set(false);
-
-            // Set lock status LED back to show state of lock.
-            sLockLED.Set(!BoltLockMgr().IsUnlocked());
+            sUnusedLED_2.Set(false);
 
             sAppTask.CancelTimer();
 
@@ -472,57 +432,6 @@ void AppTask::StartTimer(uint32_t aTimeoutInMs)
     }
 
     mFunctionTimerActive = true;
-}
-
-void AppTask::ActionInitiated(BoltLockManager::Action_t aAction, int32_t aActor)
-{
-    // If the action has been initiated by the lock, update the bolt lock trait
-    // and start flashing the LEDs rapidly to indicate action initiation.
-    if (aAction == BoltLockManager::LOCK_ACTION)
-    {
-        WdmFeature().GetBoltLockTraitDataSource().InitiateLock(aActor);
-        NRF_LOG_INFO("Lock Action has been initiated")
-    }
-    else if (aAction == BoltLockManager::UNLOCK_ACTION)
-    {
-        WdmFeature().GetBoltLockTraitDataSource().InitiateUnlock(aActor);
-        NRF_LOG_INFO("Unlock Action has been initiated")
-    }
-
-    sLockLED.Blink(50, 50);
-}
-
-void AppTask::ActionCompleted(BoltLockManager::Action_t aAction)
-{
-    // if the action has been completed by the lock, update the bolt lock trait.
-    // Turn on the lock LED if in a LOCKED state OR
-    // Turn off the lock LED if in an UNLOCKED state.
-    if (aAction == BoltLockManager::LOCK_ACTION)
-    {
-        NRF_LOG_INFO("Lock Action has been completed")
-
-        WdmFeature().GetBoltLockTraitDataSource().LockingSuccessful();
-
-        sLockLED.Set(true);
-    }
-    else if (aAction == BoltLockManager::UNLOCK_ACTION)
-    {
-        NRF_LOG_INFO("Unlock Action has been completed")
-
-        WdmFeature().GetBoltLockTraitDataSource().UnlockingSuccessful();
-
-        sLockLED.Set(false);
-    }
-}
-
-void AppTask::PostLockActionRequest(int32_t aActor, BoltLockManager::Action_t aAction)
-{
-    AppEvent event;
-    event.Type             = AppEvent::kEventType_Lock;
-    event.LockEvent.Actor  = aActor;
-    event.LockEvent.Action = aAction;
-    event.Handler          = LockActionEventHandler;
-    PostEvent(&event);
 }
 
 void AppTask::PostEvent(const AppEvent * aEvent)

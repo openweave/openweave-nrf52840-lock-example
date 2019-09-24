@@ -22,9 +22,7 @@
 #include <Weave/DeviceLayer/WeaveDeviceLayer.h>
 #include <Weave/Profiles/data-management/Current/DataManagement.h>
 
-#include "traits/include/BoltLockTraitDataSource.h"
-#include "traits/include/DeviceIdentityTraitDataSource.h"
-#include "traits/include/BoltLockSettingsTraitDataSink.h"
+#include "traits/include/SimpleCommandTraitDataSource.h"
 
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -64,7 +62,7 @@ public:
 
     bool AreServiceSubscriptionsEstablished(void);
 
-    BoltLockTraitDataSource & GetBoltLockTraitDataSource(void);
+    SimpleCommandTraitDataSource & GetSimpleCommandTraitDataSource(void);
 
     nl::Weave::Profiles::DataManagement::SubscriptionEngine mSubscriptionEngine;
 
@@ -73,25 +71,13 @@ private:
 
     enum SourceTraitHandle
     {
-        kSourceHandle_BoltLockTrait = 0,
-        kSourceHandle_DeviceIdentityTrait,
+        kSourceHandle_SimpleCommandTrait = 0,
 
         kSourceHandle_Max
     };
 
-    enum SinkTraitHandle
-    {
-        kSinkHandle_BoltLockSettingsTrait = 0,
-
-        kSinkHandle_Max
-    };
-
     // Published Traits
-    BoltLockTraitDataSource mBoltLockTraitSource;
-    DeviceIdentityTraitDataSource mDeviceIdentityTraitSource;
-
-    // Subscribed Traits
-    BoltLockSettingsTraitDataSink mBoltLockSettingsTraitSink;
+    SimpleCommandTraitDataSource mSimpleCommandTraitSource;
 
     void InitiateSubscriptionToService(void);
     static void AsyncProcessChanges(intptr_t arg);
@@ -110,32 +96,15 @@ private:
                                                const SubscriptionHandler::InEventParam & inParam,
                                                SubscriptionHandler::OutEventParam & outParam);
 
-    // Sink Catalog
-    nl::Weave::Profiles::DataManagement::SingleResourceSinkTraitCatalog::CatalogItem mServiceSinkCatalogStore[kSinkHandle_Max];
-    nl::Weave::Profiles::DataManagement::SingleResourceSinkTraitCatalog mServiceSinkTraitCatalog;
-
     // Source Catalog
-    nl::Weave::Profiles::DataManagement::SingleResourceSourceTraitCatalog mServiceSourceTraitCatalog;
-    nl::Weave::Profiles::DataManagement::SingleResourceSourceTraitCatalog::CatalogItem
-        mServiceSourceCatalogStore[kSourceHandle_Max];
-
-    nl::Weave::Profiles::DataManagement::TraitPath mServiceSinkTraitPaths[kSinkHandle_Max];
-
-    // Subscription Clients
-    nl::Weave::Profiles::DataManagement::SubscriptionClient * mServiceSubClient;
+    nl::Weave::Profiles::DataManagement::SingleResourceSourceTraitCatalog mTraitSourceCatalog;
+    nl::Weave::Profiles::DataManagement::SingleResourceSourceTraitCatalog::CatalogItem mTraitSourceCatalogStore[kSourceHandle_Max];
 
     // Subscription Handler
     nl::Weave::Profiles::DataManagement::SubscriptionHandler * mServiceCounterSubHandler;
 
-    // Binding
-    nl::Weave::Binding * mServiceSubBinding;
-
     static WDMFeature sWDMfeature;
     PublisherLock mPublisherLock;
-
-    bool mIsSubToServiceEstablished;
-    bool mIsServiceCounterSubEstablished;
-    bool mIsSubToServiceActivated;
 };
 
 inline WDMFeature & WdmFeature(void)
@@ -143,9 +112,9 @@ inline WDMFeature & WdmFeature(void)
     return WDMFeature::sWDMfeature;
 }
 
-inline BoltLockTraitDataSource & WDMFeature::GetBoltLockTraitDataSource(void)
+inline SimpleCommandTraitDataSource & WDMFeature::GetSimpleCommandTraitDataSource(void)
 {
-    return mBoltLockTraitSource;
+    return mSimpleCommandTraitSource;
 }
 
 #endif // WDM_FEATURE_H
