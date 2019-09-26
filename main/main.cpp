@@ -72,6 +72,8 @@ using namespace ::nl::Weave::DeviceLayer;
 
 extern "C" size_t GetHeapTotalSize(void);
 
+bool sIsSimpleCommandTraitPublisher    = false;
+
 // ================================================================================
 // Logging Support
 // ================================================================================
@@ -263,12 +265,50 @@ int main(void)
     //
     mbedtls_platform_set_calloc_free(calloc, free);
 
-    // Configure device to operate as a Thread router.
-    ret = ConnectivityMgr().SetThreadDeviceType(ConnectivityManager::kThreadDeviceType_Router);
-    if (ret != WEAVE_NO_ERROR)
     {
-        NRF_LOG_INFO("ConnectivityMgr().SetThreadDeviceType() failed");
-        APP_ERROR_HANDLER(ret);
+        uint64_t deviceId;
+        ConfigurationMgr().GetDeviceId(deviceId);
+        sIsSimpleCommandTraitPublisher = (deviceId == COMMAND_TARGET_NODE_ID);
+    }
+
+    if (sIsSimpleCommandTraitPublisher)
+    {
+        NRF_LOG_INFO("Operating as SimpleCommandTrait PUBLISHER");
+
+        // Configure device to operate as a Thread router.
+        ret = ConnectivityMgr().SetThreadDeviceType(ConnectivityManager::kThreadDeviceType_Router);
+        if (ret != WEAVE_NO_ERROR)
+        {
+            NRF_LOG_INFO("ConnectivityMgr().SetThreadDeviceType() failed");
+            APP_ERROR_HANDLER(ret);
+        }
+    }
+
+    else
+    {
+        NRF_LOG_INFO("Operating as SimpleCommandTrait CLIENT");
+
+        // Configure device to operate as a Thread sleepy end-device.
+        ret = ConnectivityMgr().SetThreadDeviceType(ConnectivityManager::kThreadDeviceType_SleepyEndDevice);
+        if (ret != WEAVE_NO_ERROR)
+        {
+            NRF_LOG_INFO("ConnectivityMgr().SetThreadDeviceType() failed");
+            APP_ERROR_HANDLER(ret);
+        }
+
+        // Configure the Thread polling behavior for the device.
+        {
+            ConnectivityManager::ThreadPollingConfig pollingConfig;
+            pollingConfig.Clear();
+            pollingConfig.ActivePollingIntervalMS = THREAD_ACTIVE_POLLING_INTERVAL_MS;
+            pollingConfig.InactivePollingIntervalMS = THREAD_INACTIVE_POLLING_INTERVAL_MS;
+            ret = ConnectivityMgr().SetThreadPollingConfig(pollingConfig);
+            if (ret != WEAVE_NO_ERROR)
+            {
+                NRF_LOG_INFO("ConnectivityMgr().SetThreadPollingConfig() failed");
+                APP_ERROR_HANDLER(ret);
+            }
+        }
     }
 
     NRF_LOG_INFO("Starting Weave task");

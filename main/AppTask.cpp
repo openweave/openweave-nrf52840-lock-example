@@ -46,6 +46,8 @@ using namespace ::nl::Weave::Profiles::SoftwareUpdate;
 #define APP_TASK_PRIORITY                   2
 #define APP_EVENT_QUEUE_SIZE                10
 
+extern bool sIsSimpleCommandTraitPublisher;
+
 APP_TIMER_DEF(sFunctionTimer);
 
 static SemaphoreHandle_t sWeaveEventLock;
@@ -60,8 +62,6 @@ static LEDWidget sUnusedLED_2;
 
 static bool sIsThreadAttached                 = false;
 static bool sHaveBLEConnections               = false;
-
-static bool sIsSimpleCommandTraitPublisher    = false;
 
 static nl::Weave::Platform::Security::SHA256 sSHA256;
 
@@ -192,20 +192,6 @@ int AppTask::Init()
     APP_ERROR_CHECK(err);
 
     NRF_LOG_INFO("Current Firmware Version: %s", currentFirmwareRev);
-
-    {
-        uint64_t deviceId;
-        ConfigurationMgr().GetDeviceId(deviceId);
-        sIsSimpleCommandTraitPublisher = (deviceId == COMMAND_TARGET_NODE_ID);
-        if (sIsSimpleCommandTraitPublisher)
-        {
-            NRF_LOG_INFO("Operating as SimpleCommandTrait publisher");
-        }
-        else
-        {
-            NRF_LOG_INFO("Operating as SimpleCommandTrait client");
-        }
-    }
 
     return ret;
 }
