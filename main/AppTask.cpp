@@ -558,7 +558,8 @@ void AppTask::HandleSoftwareUpdateEvent(void *apAppState,
                                         const SoftwareUpdateManager::InEventParam& aInParam,
                                         SoftwareUpdateManager::OutEventParam& aOutParam)
 {
-    static uint64_t numBytesDownloaded = 0;
+    static uint32_t persistedImageLen = 0;
+    static char persistedImageURI[WEAVE_DEVICE_CONFIG_SOFTWARE_UPDATE_URI_LEN+1] = "";
 
     switch(aEvent)
     {
@@ -605,12 +606,16 @@ void AppTask::HandleSoftwareUpdateEvent(void *apAppState,
 
         case SoftwareUpdateManager::kEvent_QueryPrepareFailed:
         {
-            NRF_LOG_INFO("Software Update failed during prepare %d (%s) statusReport = %s", aInParam.QueryPrepareFailed.Error,
-                                                                nl::ErrorStr(aInParam.QueryPrepareFailed.Error),
-                                                                (aInParam.QueryPrepareFailed.StatusReport != NULL) ?
-                                                                 nl::StatusReportStr(aInParam.QueryPrepareFailed.StatusReport->mProfileId,
-                                                                                    aInParam.QueryPrepareFailed.StatusReport->mStatusCode) :
-                                                                 "None");
+            if (aInParam.QueryPrepareFailed.Error == WEAVE_ERROR_STATUS_REPORT_RECEIVED)
+            {
+                NRF_LOG_INFO("Software Update failed during prepare: Received StatusReport %s",
+                             nl::StatusReportStr(aInParam.QueryPrepareFailed.StatusReport->mProfileId,
+                                     aInParam.QueryPrepareFailed.StatusReport->mStatusCode));
+            }
+            else
+            {
+                NRF_LOG_INFO("Software Update failed during prepare: %s", nl::ErrorStr(aInParam.QueryPrepareFailed.Error));
+            }
             break;
         }
 
@@ -637,38 +642,60 @@ void AppTask::HandleSoftwareUpdateEvent(void *apAppState,
 
         case SoftwareUpdateManager::kEvent_FetchPartialImageInfo:
         {
-            aOutParam.FetchPartialImageInfo.PartialImageLen = 0;
+            NRF_LOG_INFO("Fetching Partial Image Information");
+            if (strcmp(aInParam.FetchPartialImageInfo.URI, persistedImageURI) == 0)
+            {
+                NRF_LOG_INFO("Partial image detected in local storage; resuming download at offset %" PRId32, persistedImageLen);
+                aOutParam.FetchPartialImageInfo.PartialImageLen = persistedImageLen;
+            }
+            else
+            {
+                NRF_LOG_INFO("No partial image detected in local storage");
+                aOutParam.FetchPartialImageInfo.PartialImageLen = 0;
+            }
             break;
         }
 
-        case SoftwareUpdateManager::kEvent_ClearImageFromStorage:
+        case SoftwareUpdateManager::kEvent_PrepareImageStorage:
         {
-            NRF_LOG_INFO("Clearing Image Storage");
-            numBytesDownloaded = 0;
+            NRF_LOG_INFO("Preparing Image Storage");
+
+            // Capture state information about the image being downloaded.
+            persistedImageLen = 0;
+            strncpy(persistedImageURI, aInParam.PrepareImageStorage.URI, sizeof(persistedImageURI));
+            persistedImageURI[sizeof(persistedImageURI) - 1] = 0;
+
+            // Prepare to compute the integrity of the image as it is received.
+            //
+            // This example does not actually store image blocks in persistent storage and merely discards
+            // them after computing the SHA over it. As a result, integrity has to be computed as the image
+            // blocks are received, rather than over the entire image at the end. This pattern is NOT
+            // recommended since the computed integrity will be lost if the device rebooted during download.
+            //
+            sSHA256.Begin();
+
+            // Tell the SoftwareUpdateManager that storage preparation has completed.
+            SoftwareUpdateMgr().PrepareImageStorageComplete(WEAVE_NO_ERROR);
             break;
         }
 
         case SoftwareUpdateManager::kEvent_StartImageDownload:
         {
-            sSHA256.Begin();
             NRF_LOG_INFO("Starting Image Download");
             break;
         }
         case SoftwareUpdateManager::kEvent_StoreImageBlock:
         {
-            /* This example does not store image blocks in persistent storage and merely discards them after
-             * computing the SHA over it. As a result, integrity has to be computed over image blocks rather than
-             * the entire image. This pattern is NOT recommended since the computed integrity
-             * will be lost if the device rebooted during download (unless also stored in persistent storage).
-             */
             sSHA256.AddData(aInParam.StoreImageBlock.DataBlock, aInParam.StoreImageBlock.DataBlockLen);
-            numBytesDownloaded += aInParam.StoreImageBlock.DataBlockLen;
+            persistedImageLen += aInParam.StoreImageBlock.DataBlockLen;
+            NRF_LOG_INFO("Image Download: %" PRId32 " bytes received", persistedImageLen);
             break;
         }
 
         case SoftwareUpdateManager::kEvent_ComputeImageIntegrity:
         {
-            NRF_LOG_INFO("Num. bytes downloaded: %d", numBytesDownloaded);
+            NRF_LOG_INFO("Computing image integrity");
+            NRF_LOG_INFO("Total image length: %" PRId32, persistedImageLen);
 
             // Make sure that the buffer provided in the parameter is large enough.
             if (aInParam.ComputeImageIntegrity.IntegrityValueBufLen < sSHA256.kHashLength)
@@ -679,6 +706,16 @@ void AppTask::HandleSoftwareUpdateEvent(void *apAppState,
             {
                 sSHA256.Finish(aInParam.ComputeImageIntegrity.IntegrityValueBuf);
             }
+            break;
+        }
+
+        case SoftwareUpdateManager::kEvent_ResetPartialImageInfo:
+        {
+            // Reset the "persistent" state information related to the image being downloaded,
+            // This ensures that the image will be re-downloaded in its entirety during the next
+            // software update attempt.
+            persistedImageLen = 0;
+            persistedImageURI[0] = '\0';
             break;
         }
 
@@ -718,15 +755,26 @@ void AppTask::HandleSoftwareUpdateEvent(void *apAppState,
             }
             else if (aInParam.Finished.Error != WEAVE_NO_ERROR || aInParam.Finished.StatusReport != NULL)
             {
-                NRF_LOG_INFO("Software Update failed %s statusReport = %s", nl::ErrorStr(aInParam.Finished.Error),
-                                                                (aInParam.Finished.StatusReport != NULL) ?
-                                                                 nl::StatusReportStr(aInParam.Finished.StatusReport->mProfileId,
-                                                                                    aInParam.Finished.StatusReport->mStatusCode) :
-                                                                 "None");
+                if (aInParam.Finished.Error == WEAVE_ERROR_STATUS_REPORT_RECEIVED)
+                {
+                    NRF_LOG_INFO("Software Update failed: Received StatusReport %s",
+                                 nl::StatusReportStr(aInParam.Finished.StatusReport->mProfileId,
+                                                     aInParam.Finished.StatusReport->mStatusCode));
+                }
+                else
+                {
+                    NRF_LOG_INFO("Software Update failed: %s", nl::ErrorStr(aInParam.Finished.Error));
+                }
             }
             else
             {
                 NRF_LOG_INFO("Software Update Completed");
+
+                // Reset the "persistent" image state information.  Since we don't actually apply the
+                // downloaded image, this ensures that the next software update attempt will re-download
+                // the image.
+                persistedImageLen = 0;
+                persistedImageURI[0] = '\0';
             }
             break;
         }
