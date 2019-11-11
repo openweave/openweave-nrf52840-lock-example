@@ -30,6 +30,7 @@
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
+#include "sdk_config.h"
 #ifdef SOFTDEVICE_PRESENT
 #include "nrf_soc.h"
 #endif
