@@ -16,6 +16,8 @@
  *    limitations under the License.
  */
 
+# FIXME: anything that should be different whether it is a development or release build?
+
 #ifndef APP_CONFIG_H
 #define APP_CONFIG_H
 

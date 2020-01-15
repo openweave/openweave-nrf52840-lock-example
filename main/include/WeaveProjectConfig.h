@@ -28,6 +28,8 @@
 #ifndef WEAVE_PROJECT_CONFIG_H
 #define WEAVE_PROJECT_CONFIG_H
 
+#if BUILD_DEVELOPMENT
+
 /**
  * WEAVE_DEVICE_CONFIG_ENABLE_TEST_DEVICE_IDENTITY
  *
@@ -38,17 +40,34 @@
  */
 #define WEAVE_DEVICE_CONFIG_ENABLE_TEST_DEVICE_IDENTITY 34
 
-// Use a default pairing code if one hasn't been provisioned in flash.
+/**
+ * Use a default pairing code if one hasn't been provisioned in flash.
+ *
+ * This option is for testing only and should be disabled in production releases.
+ */
 #define WEAVE_DEVICE_CONFIG_USE_TEST_PAIRING_CODE "NESTUS"
 
-// For convenience, enable Weave Security Test Mode and disable the requirement for
-// authentication in various protocols.
-//
-//    WARNING: These options make it possible to circumvent basic Weave security functionality,
-//    including message encryption. Because of this they MUST NEVER BE ENABLED IN PRODUCTION BUILDS.
-//
+/**
+ * For convenience, enable Weave Security Test Mode and disable the requirement for
+ * authentication in various protocols.
+ *
+ * These options make it possible to circumvent basic Weave security functionality,
+ * including message encryption.
+ * Because of this, the way these options are configured below
+ * MUST NEVER BE ENABLED IN PRODUCTION BUILDS.
+ */
 #define WEAVE_CONFIG_SECURITY_TEST_MODE 1
 #define WEAVE_CONFIG_REQUIRE_AUTH 0
+
+/**
+ * WEAVE_DEVICE_CONFIG_USE_TEST_SERIAL_NUMBER
+ *
+ * Enables the use of a hard-coded default serial number if none
+ * is found in Weave NV storage.
+ */
+#define WEAVE_DEVICE_CONFIG_USE_TEST_SERIAL_NUMBER "DUMMY_SN"
+
+# endif /* BUILD_DEVELOPMENT */
 
 /**
  * WEAVE_DEVICE_CONFIG_DEVICE_VENDOR_ID
@@ -84,6 +103,7 @@
 #ifndef WEAVE_DEVICE_CONFIG_DEVICE_FIRMWARE_REVISION
 #define WEAVE_DEVICE_CONFIG_DEVICE_FIRMWARE_REVISION "1.0d1"
 #endif
+
 /**
  * WEAVE_DEVICE_CONFIG_ENABLE_WOBLE
  *
@@ -98,14 +118,6 @@
  * using the Weave Time Sync protocol.
  */
 #define WEAVE_DEVICE_CONFIG_ENABLE_WEAVE_TIME_SERVICE_TIME_SYNC 1
-
-/**
- * WEAVE_DEVICE_CONFIG_USE_TEST_SERIAL_NUMBER
- *
- * Enables the use of a hard-coded default serial number if none
- * is found in Weave NV storage.
- */
-#define WEAVE_DEVICE_CONFIG_USE_TEST_SERIAL_NUMBER "DUMMY_SN"
 
 /**
  * WEAVE_CONFIG_MAX_BINDINGS
@@ -144,6 +156,7 @@
  * importance level, this means all standard, critical, info and debug importance level
  * vi events get logged.
  */
+// FIXME --> define in Makefile?
 #define WEAVE_CONFIG_EVENT_LOGGING_DEFAULT_IMPORTANCE nl::Weave::Profiles::DataManagement::Debug
 
 #endif // WEAVE_PROJECT_CONFIG_H
