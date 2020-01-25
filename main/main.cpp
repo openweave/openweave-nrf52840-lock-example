@@ -169,6 +169,11 @@ int main(void)
 
     NRF_LOG_INFO("==================================================");
     NRF_LOG_INFO("openweave-nrf52840-lock-example starting");
+#if BUILD_RELEASE
+    NRF_LOG_INFO("*** PSEUDO-RELEASE BUILD ***");
+#else
+    NRF_LOG_INFO("*** DEVELOPMENT BUILD ***");
+#endif
     NRF_LOG_INFO("==================================================");
 
 #if defined(SOFTDEVICE_PRESENT) && SOFTDEVICE_PRESENT

@@ -28,7 +28,21 @@
 #ifndef WEAVE_PROJECT_CONFIG_H
 #define WEAVE_PROJECT_CONFIG_H
 
-#if BUILD_DEVELOPMENT
+#if BUILD_RELEASE  // release build
+
+// Security and Authentication enabled for release build.
+#define WEAVE_CONFIG_SECURITY_TEST_MODE 0
+#define WEAVE_CONFIG_REQUIRE_AUTH 1
+
+#else  // development build
+
+// Security and Authentication disabled for development build.
+// For convenience, enable Weave Security Test Mode and disable the requirement for
+// authentication in various protocols.
+// WARNING: These options make it possible to circumvent basic Weave security functionality,
+// including message encryption. Because of this they MUST NEVER BE ENABLED IN PRODUCTION BUILDS.
+#define WEAVE_CONFIG_SECURITY_TEST_MODE 1
+#define WEAVE_CONFIG_REQUIRE_AUTH 0
 
 /**
  * WEAVE_DEVICE_CONFIG_ENABLE_TEST_DEVICE_IDENTITY
@@ -40,24 +54,8 @@
  */
 #define WEAVE_DEVICE_CONFIG_ENABLE_TEST_DEVICE_IDENTITY 34
 
-/**
- * Use a default pairing code if one hasn't been provisioned in flash.
- *
- * This option is for testing only and should be disabled in production releases.
- */
+// Use a default pairing code if one hasn't been provisioned in flash.
 #define WEAVE_DEVICE_CONFIG_USE_TEST_PAIRING_CODE "NESTUS"
-
-/**
- * For convenience, enable Weave Security Test Mode and disable the requirement for
- * authentication in various protocols.
- *
- * These options make it possible to circumvent basic Weave security functionality,
- * including message encryption.
- * Because of this, the way these options are configured below
- * MUST NEVER BE ENABLED IN PRODUCTION BUILDS.
- */
-#define WEAVE_CONFIG_SECURITY_TEST_MODE 1
-#define WEAVE_CONFIG_REQUIRE_AUTH 0
 
 /**
  * WEAVE_DEVICE_CONFIG_USE_TEST_SERIAL_NUMBER
@@ -67,7 +65,7 @@
  */
 #define WEAVE_DEVICE_CONFIG_USE_TEST_SERIAL_NUMBER "DUMMY_SN"
 
-# endif /* BUILD_DEVELOPMENT */
+# endif // BUILD_RELEASE
 
 /**
  * WEAVE_DEVICE_CONFIG_DEVICE_VENDOR_ID
@@ -103,7 +101,6 @@
 #ifndef WEAVE_DEVICE_CONFIG_DEVICE_FIRMWARE_REVISION
 #define WEAVE_DEVICE_CONFIG_DEVICE_FIRMWARE_REVISION "1.0d1"
 #endif
-
 /**
  * WEAVE_DEVICE_CONFIG_ENABLE_WOBLE
  *
@@ -152,11 +149,14 @@
 /**
  * WEAVE_CONFIG_EVENT_LOGGING_DEFAULT_IMPORTANCE
  *
- * Set the default importance of events to be logged as Debug. Since debug is the lowest
- * importance level, this means all standard, critical, info and debug importance level
- * vi events get logged.
+ * For a development build, set the default importance of events to be logged as Debug.
+ * Since debug is the lowest importance level, this means all standard, critical, info and
+ * debug importance level vi events get logged.
  */
-// FIXME --> define in Makefile?
+#if BUILD_RELEASE
+#define WEAVE_CONFIG_EVENT_LOGGING_DEFAULT_IMPORTANCE nl::Weave::Profiles::DataManagement::Production
+#else
 #define WEAVE_CONFIG_EVENT_LOGGING_DEFAULT_IMPORTANCE nl::Weave::Profiles::DataManagement::Debug
+#endif // BUILD_RELEASE
 
 #endif // WEAVE_PROJECT_CONFIG_H

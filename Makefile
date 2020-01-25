@@ -185,34 +185,35 @@ DEFINES += \
     WEAVE_DEVICE_CONFIG_DEVICE_FIRMWARE_REVISION=\"$(DEVICE_FIRMWARE_REVISION)\"
 endif
 
-# A product's firmware usually comes with at least two build "flavors":
-# 1) a "development" build which typically enables debugging artifacts along with logging, and disables
-# security and optimizations and 2) a "release" build which targets end-user devices
+# A product's firmware usually comes with two build "flavors":
+# 1) a "development" build which typically enables debugging artifacts along with logging,
+# and disables security and optimizations and
+# 2) a "release" build which targets end-user devices
 # and disables debugging artifacts and logging, and enables security and optimizations.
 #
 # To facilitate supporting these two build flavors, the sample app source code supports
-# the Makefile variable BUILD_DEVELOPMENT. BUILD_DEVELOPMENT is enabled by default so that
-# with no command line argument pecified at compile-time, a development build is produced.
-# Specifying BUILD_DEVELOPMENT=0 when running make which will yield a "pseudo" release build.
+# the build configuration option BUILD_RELEASE. By default, BUILD_RELEASE is not defined
+# and a development build is produced. If make is invoked with BUILD_RELEASE=1, then
+# a "pseudo-release" build is produced.
 #
-#
-# IMPORTANT NOTE: we say "pseudo" release build because the sample app is never to be used
+# We say "pseudo-release" build because the sample app is never to be used as-is
 # as the firmware for an end-user device. However, since real products may start off with
-# the sample app source code we provide, we show how the BUILD_DEVELOPMENT make variable
+# the sample app source code, we show how the BUILD_RELEASE build configuration option
 # can be used to produce two build flavors (development and release) of the firmware.
-# By no means does the use of BUILD_DEVELOPMENT in the sample app cover all key aspects that
-# one should be concerned with (e.g. security, performance) when targeting real world end-user devices.
-ifdef BUILD_DEVELOPMENT
-    $(info *** Building DEVELOPMENT firmware ***)
-    DEFINES += BUILD_DEVELOPMENT
-    # Increase Tread logging level to INFO.
-    OPENTHREAD_DEFINES += OPENTHREAD_CONFIG_LOG_LEVEL=OT_LOG_LEVEL_INFO
-else
-    $(info *** Building PSEUDO-RELEASE firmware ***)
+#
+# IMPORTANT: By no means does the use of BUILD_RELEASE in the sample app cover all key aspects that
+# one should be concerned with (e.g. security, performance) when targeting real world end-user
+# devices. This is simply provided for guidance on how to support two build flavors.
+
+ifdef BUILD_RELEASE
+    DEFINES += BUILD_RELEASE=1
     # Disable Thread logging.
     OPENTHREAD_DEFINES += OPENTHREAD_CONFIG_LOG_LEVEL=OT_LOG_LEVEL_NONE
+else
+    DEFINES += BUILD_RELEASE=0
+    # Increase Tread logging level to INFO.
+    OPENTHREAD_DEFINES += OPENTHREAD_CONFIG_LOG_LEVEL=OT_LOG_LEVEL_INFO
 endif
-
 
 OPENWEAVE_PROJECT_CONFIG = $(PROJECT_ROOT)/main/include/WeaveProjectConfig.h
 

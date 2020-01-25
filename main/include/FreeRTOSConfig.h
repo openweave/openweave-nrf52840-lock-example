@@ -26,7 +26,6 @@
  * 1 tab == 4 spaces!
  */
 
-# FIXME: anything that should be different whether it is a development or release build?
 
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
