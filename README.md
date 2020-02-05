@@ -160,7 +160,7 @@ The remaining two LEDs and buttons (#3 and #4) are unused.
 
 * Set the following environment variables based on the locations/versions of the packages installed above:
 
-        export NRF5_SDK_ROOT=${HOME}/tools/nRF5_SDK_for_Thread_and_Zigbee_v3.0.0
+        export NRF5_SDK_ROOT=${HOME}/tools/nRF5_SDK_for_Thread_and_Zigbee_v3.1.0
         export NRF5_TOOLS_ROOT=${HOME}/tools/nRF-Command-Line-Tools
         export GNU_INSTALL_ROOT=${HOME}/tools/gcc-arm-none-eabi-7-2018-q2-update/bin/
         export PATH=${PATH}:${NRF5_TOOLS_ROOT}/nrfjprog
