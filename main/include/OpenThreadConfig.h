@@ -37,6 +37,7 @@
 
 // When operating in a less than ideal RF environment, having a more forgiving configuration
 // of OpenThread makes thread a great deal more reliable.
+#define OPENTHREAD_CONFIG_ADDRESS_QUERY_MAX_RETRY_DELAY 120 // default is 28800
 #define OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_DIRECT 15 // default is 3
 #define OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_INDIRECT 1 // default is 0
 #define OPENTHREAD_CONFIG_MAC_MAX_TX_ATTEMPTS_INDIRECT_POLLS 16 // default is 4
