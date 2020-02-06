@@ -189,6 +189,10 @@ OPENWEAVE_PROJECT_CONFIG = $(PROJECT_ROOT)/main/include/WeaveProjectConfig.h
 
 OPENTHREAD_PROJECT_CONFIG = $(PROJECT_ROOT)/main/include/OpenThreadConfig.h
 
+OPENTHREAD_CONFIGURE_OPTIONS += \
+    --enable-child-supervision \
+    --enable-jam-detection
+
 LINKER_SCRIPT = $(PROJECT_ROOT)/main/ldscripts/openweave-nrf52840-lock-example.ld
 
 $(call GenerateBuildRules)
