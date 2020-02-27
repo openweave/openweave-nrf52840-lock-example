@@ -28,6 +28,22 @@
 #ifndef WEAVE_PROJECT_CONFIG_H
 #define WEAVE_PROJECT_CONFIG_H
 
+#if BUILD_RELEASE  // release build
+
+// Security and Authentication enabled for release build.
+#define WEAVE_CONFIG_SECURITY_TEST_MODE 0
+#define WEAVE_CONFIG_REQUIRE_AUTH 1
+
+#else  // development build
+
+// Security and Authentication disabled for development build.
+// For convenience, enable Weave Security Test Mode and disable the requirement for
+// authentication in various protocols.
+// WARNING: These options make it possible to circumvent basic Weave security functionality,
+// including message encryption. Because of this they MUST NEVER BE ENABLED IN PRODUCTION BUILDS.
+#define WEAVE_CONFIG_SECURITY_TEST_MODE 1
+#define WEAVE_CONFIG_REQUIRE_AUTH 0
+
 /**
  * WEAVE_DEVICE_CONFIG_ENABLE_TEST_DEVICE_IDENTITY
  *
@@ -41,14 +57,15 @@
 // Use a default pairing code if one hasn't been provisioned in flash.
 #define WEAVE_DEVICE_CONFIG_USE_TEST_PAIRING_CODE "NESTUS"
 
-// For convenience, enable Weave Security Test Mode and disable the requirement for
-// authentication in various protocols.
-//
-//    WARNING: These options make it possible to circumvent basic Weave security functionality,
-//    including message encryption. Because of this they MUST NEVER BE ENABLED IN PRODUCTION BUILDS.
-//
-#define WEAVE_CONFIG_SECURITY_TEST_MODE 1
-#define WEAVE_CONFIG_REQUIRE_AUTH 0
+/**
+ * WEAVE_DEVICE_CONFIG_USE_TEST_SERIAL_NUMBER
+ *
+ * Enables the use of a hard-coded default serial number if none
+ * is found in Weave NV storage.
+ */
+#define WEAVE_DEVICE_CONFIG_USE_TEST_SERIAL_NUMBER "DUMMY_SN"
+
+# endif // BUILD_RELEASE
 
 /**
  * WEAVE_DEVICE_CONFIG_DEVICE_VENDOR_ID
@@ -100,14 +117,6 @@
 #define WEAVE_DEVICE_CONFIG_ENABLE_WEAVE_TIME_SERVICE_TIME_SYNC 1
 
 /**
- * WEAVE_DEVICE_CONFIG_USE_TEST_SERIAL_NUMBER
- *
- * Enables the use of a hard-coded default serial number if none
- * is found in Weave NV storage.
- */
-#define WEAVE_DEVICE_CONFIG_USE_TEST_SERIAL_NUMBER "DUMMY_SN"
-
-/**
  * WEAVE_CONFIG_MAX_BINDINGS
  *
  * Maximum number of simultaneously active bindings per WeaveExchangeManager
@@ -140,10 +149,14 @@
 /**
  * WEAVE_CONFIG_EVENT_LOGGING_DEFAULT_IMPORTANCE
  *
- * Set the default importance of events to be logged as Debug. Since debug is the lowest
- * importance level, this means all standard, critical, info and debug importance level
- * vi events get logged.
+ * For a development build, set the default importance of events to be logged as Debug.
+ * Since debug is the lowest importance level, this means all standard, critical, info and
+ * debug importance level vi events get logged.
  */
+#if BUILD_RELEASE
+#define WEAVE_CONFIG_EVENT_LOGGING_DEFAULT_IMPORTANCE nl::Weave::Profiles::DataManagement::Production
+#else
 #define WEAVE_CONFIG_EVENT_LOGGING_DEFAULT_IMPORTANCE nl::Weave::Profiles::DataManagement::Debug
+#endif // BUILD_RELEASE
 
 #endif // WEAVE_PROJECT_CONFIG_H
