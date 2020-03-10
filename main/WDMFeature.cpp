@@ -286,7 +286,7 @@ void WDMFeature::HandleOutboundServiceSubscriptionEvent(void * appState, Subscri
         case SubscriptionClient::kEvent_OnSubscribeRequestPrepareNeeded:
         {
             outParam.mSubscribeRequestPrepareNeeded.mPathList                  = &(sWDMfeature.mServiceSinkTraitPaths[0]);
-            outParam.mSubscribeRequestPrepareNeeded.mPathListSize              = 1;
+            outParam.mSubscribeRequestPrepareNeeded.mPathListSize              = kSinkHandle_Max;
             outParam.mSubscribeRequestPrepareNeeded.mVersionedPathList         = NULL;
             outParam.mSubscribeRequestPrepareNeeded.mNeedAllEvents             = false;
             outParam.mSubscribeRequestPrepareNeeded.mLastObservedEventList     = NULL;
@@ -305,6 +305,7 @@ void WDMFeature::HandleOutboundServiceSubscriptionEvent(void * appState, Subscri
             break;
 
         case SubscriptionClient::kEvent_OnSubscriptionTerminated:
+        {
             NRF_LOG_INFO(
                 "Outbound service subscription terminated: %s",
                 (inParam.mSubscriptionTerminated.mIsStatusCodeValid)
@@ -312,7 +313,20 @@ void WDMFeature::HandleOutboundServiceSubscriptionEvent(void * appState, Subscri
                     : ErrorStr(inParam.mSubscriptionTerminated.mReason));
 
             sWDMfeature.mIsSubToServiceEstablished = false;
+
+            if (inParam.mSubscriptionTerminated.mClient == sWDMfeature.mServiceSubClient)
+            {
+                // This would happen when the service explicitly terminates the subscription
+                // by sending a CANCEL subscription request.
+                if (!inParam.mSubscriptionTerminated.mWillRetry)
+                {
+                    sWDMfeature.TearDownSubscriptions();
+                    sWDMfeature.InitiateSubscriptionToService();
+                }
+            }
+
             break;
+        }
 
         default:
             SubscriptionClient::DefaultEventHandler(eventType, inParam, outParam);
