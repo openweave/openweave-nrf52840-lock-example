@@ -37,6 +37,11 @@
 #define OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_INDIRECT 1 // default is 0
 #define OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_INDIRECT_POLLS 16 // default is 4
 
+// Enable periodic parent search to speed up finding a better parent.
+#define OPENTHREAD_CONFIG_ENABLE_PERIODIC_PARENT_SEARCH 1 // default is 0
+#define OPENTHREAD_CONFIG_PARENT_SEARCH_RSS_THRESHOLD -45 // default is -65
+#define OPENTHREAD_CONFIG_INFORM_PREVIOUS_PARENT_ON_REATTACH 1 // default is 0
+
 // Use the Nordic-supplied default platform configuration for remainder
 // of OpenThread config options.
 //
