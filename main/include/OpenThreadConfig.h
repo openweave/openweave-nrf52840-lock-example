@@ -42,6 +42,9 @@
 #define OPENTHREAD_CONFIG_PARENT_SEARCH_RSS_THRESHOLD -45 // default is -65
 #define OPENTHREAD_CONFIG_INFORM_PREVIOUS_PARENT_ON_REATTACH 1 // default is 0
 
+// Use smaller maximum interval to speed up reattaching.
+#define OPENTHREAD_CONFIG_ATTACH_BACKOFF_MAXIMUM_INTERVAL (60 * 10 * 1000) // default 1200000 ms
+
 // Use the Nordic-supplied default platform configuration for remainder
 // of OpenThread config options.
 //
