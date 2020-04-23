@@ -149,14 +149,16 @@
 /**
  * WEAVE_CONFIG_EVENT_LOGGING_DEFAULT_IMPORTANCE
  *
- * For a development build, set the default importance of events to be logged as Debug.
+ * Set the default importance of events to be logged as Debug.
  * Since debug is the lowest importance level, this means all standard, critical, info and
- * debug importance level vi events get logged.
+ * debug importance level events get logged.
  */
-#if BUILD_RELEASE
-#define WEAVE_CONFIG_EVENT_LOGGING_DEFAULT_IMPORTANCE nl::Weave::Profiles::DataManagement::Production
-#else
 #define WEAVE_CONFIG_EVENT_LOGGING_DEFAULT_IMPORTANCE nl::Weave::Profiles::DataManagement::Debug
+
+#if BUILD_RELEASE
+#define WEAVE_DEVICE_CONFIG_DEFAULT_TELEMETRY_INTERVAL_MS (2*60*60*1000)  // 2 hours
+#else
+#define WEAVE_DEVICE_CONFIG_DEFAULT_TELEMETRY_INTERVAL_MS (10*60*1000)  // 10 mintues
 #endif // BUILD_RELEASE
 
 #endif // WEAVE_PROJECT_CONFIG_H
